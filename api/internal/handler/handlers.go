@@ -1,0 +1,236 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/revueexchange/api/internal/model"
+	"github.com/revueexchange/api/internal/service"
+	"github.com/rs/zerolog/log"
+)
+
+// Response is a standard API response
+type Response struct {
+	Data    interface{} `json:"data,omitempty"`
+	Error   string     `json:"error,omitempty"`
+	Message string     `json:"message,omitempty"`
+}
+
+// HealthCheck handles GET /health
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "OK"})
+}
+
+// Register handles POST /api/v1/auth/register
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email    string `json:"email"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" || req.Username == "" || req.Password == "" {
+		http.Error(w, "email, username, and password are required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.AuthService.Register(r.Context(), req.Email, req.Username, req.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("register failed")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: user})
+}
+
+// Login handles POST /api/v1/auth/login
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.AuthService.Login(r.Context(), req.Email, req.Password)
+	if err != nil {
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: user})
+}
+
+// Me handles GET /api/v1/auth/me
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	user, err := h.UserService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: user})
+}
+
+// UpdateUser handles PUT /api/v1/users/{id}
+func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	userIDStr := chi.URLParam(r, "id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	// Verify user is updating themselves
+	requestingUserID := r.Context().Value("user_id").(uuid.UUID)
+	if userID != requestingUserID {
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		DisplayName *string `json:"display_name"`
+		Bio         *string `json:"bio"`
+		AvatarURL   *string `json:"avatar_url"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.UserService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	if req.DisplayName != nil {
+		user.DisplayName = *req.DisplayName
+	}
+	if req.Bio != nil {
+		user.Bio = req.Bio
+	}
+	if req.AvatarURL != nil {
+		user.AvatarURL = req.AvatarURL
+	}
+
+	if err := h.UserService.UpdateUser(r.Context(), user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: user})
+}
+
+// ListBounties handles GET /api/v1/bounties
+func (h *Handler) ListBounties(w http.ResponseWriter, r *http.Request) {
+	bounties, err := h.BountyService.GetBounties(r.Context(), 20, 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: bounties})
+}
+
+// GetBounty handles GET /api/v1/bounties/{id}
+func (h *Handler) GetBounty(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid bounty id", http.StatusBadRequest)
+		return
+	}
+
+	bounty, err := h.BountyService.GetBountyByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "bounty not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: bounty})
+}
+
+// CreateBounty handles POST /api/v1/bounties
+func (h *Handler) CreateBounty(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	var req struct {
+		ProductID    uuid.UUID `json:"product_id"`
+		BountyPoints int       `json:"bounty_points"`
+		BountyCash   *float64  `json:"bounty_cash"`
+		Requirements *string   `json:"requirements"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	bounty := &model.Bounty{
+		ID:            uuid.New(),
+		UserID:        userID,
+		ProductID:     req.ProductID,
+		BountyPoints:  req.BountyPoints,
+		BountyCash:    req.BountyCash,
+		Status:        "open",
+		Requirements:  req.Requirements,
+	}
+
+	if err := h.BountyService.CreateBounty(r.Context(), bounty); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: bounty})
+}
+
+// GetBalance handles GET /api/v1/points/balance
+func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	balance, err := h.PointsService.GetBalance(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: map[string]int{"balance": balance}})
+}
+
+// GetTransactions handles GET /api/v1/points/transactions
+func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	txs, err := h.PointsService.GetTransactions(r.Context(), userID, 20, 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: txs})
+}
