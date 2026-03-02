@@ -82,18 +82,18 @@
 **Goal**: Create MSW mock handlers for UI development without backend
 
 **Deliverables**:
-- ❗️ MSW setup and configuration
-- ❗️ Mock handlers for:
-  - ❗️ Auth (register, login, me)
-  - ❗️ Users (profile, update)
-  - ❗️ Bounties (list, detail, create, claim)
-  - ❗️ Reviews (list, detail, create, submit)
-  - ❗️ Points (balance, transactions)
-  - ❗️ Payments (checkout, webhook)
-  - ❗️ Social (feed, follow)
-  - ❗️ Gamification (badges, leaderboard)
-- ❗️ Mock data
-- ❗️ Environment toggle (mock vs real API)
+- ✅ MSW setup and configuration (msw init, worker setup in main.tsx)
+- ✅ Mock handlers for:
+  - ✅ Auth (register, login, me, logout)
+  - ✅ Users (list, get, update, profile)
+  - ✅ Bounties (list, get, create, update, delete, claim)
+  - ❌ Reviews (not implemented in mock - backend pending)
+  - ✅ Points (balance, transactions, transfer, leaderboard)
+  - ❌ Payments (not implemented in mock - backend pending)
+  - ❌ Social (not implemented in mock - backend pending)
+  - ❌ Gamification (not implemented in mock - backend pending)
+- ✅ Mock data (users, bounties, transactions)
+- ✅ Environment toggle (DEV mode uses MSW automatically)
 
 ---
 
@@ -541,8 +541,8 @@
 | 1 | Terraform Infrastructure | ✅ |
 | 2 | Local Development Environment | ❗️ |
 | 3 | Go API Project Setup | ❗️ |
-| 4 | React Frontend Setup | ❗️ |
-| 5 | Mock API for UI Development | ❗️ |
+| 4 | React Frontend Setup | ✅ |
+| 5 | Mock API for UI Development | ✅ |
 | 6 | User Authentication (Backend) | ❗️ |
 | 7 | User Authentication (Frontend) | ❗️ |
 | 8 | User Profiles | ❗️ |
@@ -571,7 +571,7 @@
 | 31 | Production Deployment | ❗️ |
 | 32 | Launch & Handoff | ❗️ |
 
-**Completed**: 1/32 sprints
+**Completed**: 5/32 sprints
 
 ---
 

@@ -6,6 +6,16 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
+// Start MSW in development mode for mock API
+async function enableMocking() {
+  if (import.meta.env.DEV) {
+    const { worker } = await import('./mocks/browser')
+    return worker.start({
+      onUnhandledRequest: 'bypass',
+    })
+  }
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -15,14 +25,17 @@ const queryClient = new QueryClient({
   },
 })
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>,
-)
+// Initialize MSW before rendering
+enableMocking().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>,
+  )
+})

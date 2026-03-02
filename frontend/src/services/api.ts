@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, Bounty, PointTransaction, ApiResponse } from '../types'
+import type { User, Bounty, PointTransaction } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -48,9 +48,9 @@ export const api = {
   },
 
   // Bounties
-  async getBounties() {
-    const { data } = await client.get<{ data: Bounty[] }>('/v1/bounties')
-    return data.data
+  async getBounties(params?: { status?: string; genre?: string; type?: string }) {
+    const { data } = await client.get<{ data: Bounty[]; meta: { total: number } }>('/v1/bounties', { params })
+    return { bounties: data.data, meta: data.meta }
   },
 
   async getBounty(id: string) {
@@ -65,12 +65,12 @@ export const api = {
 
   // Points
   async getBalance() {
-    const { data } = await client.get<{ data: { balance: number } }>('/v1/points/balance')
-    return data.data.balance
+    const { data } = await client.get<{ data: { points: number } }>('/v1/points/balance')
+    return data.data.points
   },
 
-  async getTransactions() {
-    const { data } = await client.get<{ data: PointTransaction[] }>('/v1/points/transactions')
-    return data.data
+  async getTransactions(params?: { limit?: number; offset?: number }) {
+    const { data } = await client.get<{ data: PointTransaction[]; meta: { total: number } }>('/v1/points/transactions', { params })
+    return { transactions: data.data, meta: data.meta }
   },
 }

@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../services/api'
 
 export default function Bounties() {
-  const { data: bounties, isLoading } = useQuery({
+  const { data: result, isLoading } = useQuery({
     queryKey: ['bounties'],
-    queryFn: api.getBounties,
+    queryFn: () => api.getBounties(),
   })
+
+  const bounties = result?.bounties
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -20,13 +22,13 @@ export default function Bounties() {
         </button>
       </div>
 
-      {bounties?.length === 0 ? (
+      {!bounties || bounties.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           No bounties available. Be the first to create one!
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bounties?.map((bounty) => (
+          {bounties.map((bounty) => (
             <div key={bounty.id} className="bg-white rounded-lg shadow p-6">
               <div className="flex justify-between items-start mb-4">
                 <span className={`px-2 py-1 rounded text-sm ${
