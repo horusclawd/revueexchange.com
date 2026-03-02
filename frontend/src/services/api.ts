@@ -68,6 +68,27 @@ export const api = {
     return data.data
   },
 
+  // Reviews
+  async createReview(review: { bounty_id: string; rating: number; title: string; content: string }) {
+    const { data } = await client.post<{ data: unknown }>('/v1/reviews', review)
+    return data.data
+  },
+
+  async getReview(id: string) {
+    const { data } = await client.get<{ data: unknown }>(`/v1/reviews/${id}`)
+    return data.data
+  },
+
+  async updateReview(id: string, updates: { rating?: number; title?: string; content?: string }) {
+    const { data } = await client.put<{ data: unknown }>(`/v1/reviews/${id}`, updates)
+    return data.data
+  },
+
+  async submitReview(id: string) {
+    const { data } = await client.post<{ data: unknown }>(`/v1/reviews/${id}/submit`)
+    return data.data
+  },
+
   // Points
   async getBalance() {
     const { data } = await client.get<{ data: { points: number } }>('/v1/points/balance')

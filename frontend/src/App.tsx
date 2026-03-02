@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Bounties from './pages/Bounties'
+import MyReviews from './pages/MyReviews'
 import Profile from './pages/Profile'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Bounties />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="reviews"
+          element={
+            <ProtectedRoute>
+              <MyReviews />
             </ProtectedRoute>
           }
         />
