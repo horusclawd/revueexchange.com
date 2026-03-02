@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -171,5 +170,3 @@ func (r *Repository) GetPointTransactions(ctx context.Context, userID uuid.UUID,
 func (r *Repository) Close() {
 	r.db.Close()
 }
-
-var _ model.DB = (*Repository)(nil)

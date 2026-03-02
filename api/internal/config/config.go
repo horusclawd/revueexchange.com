@@ -7,9 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"github.com/revueexchange/api/internal/model"
 	"github.com/revueexchange/api/internal/repository"
-	"github.com/revueexchange/api/internal/service"
 )
 
 // Config holds all configuration
@@ -86,11 +84,6 @@ func InitDB(cfg *Config) (*repository.Repository, error) {
 	return repository.NewRepository(pool), nil
 }
 
-// InitServices initializes all services
-func InitServices(repo *repository.Repository, cfg *Config) *service.Services {
-	return service.NewServices(repo, cfg)
-}
-
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -106,5 +99,3 @@ func getEnvInt(key string, defaultValue int) int {
 	}
 	return defaultValue
 }
-
-var _ model.DB = (*pgxpool.Pool)(nil)

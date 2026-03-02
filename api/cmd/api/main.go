@@ -11,6 +11,7 @@ import (
 
 	"github.com/revueexchange/api/internal/config"
 	"github.com/revueexchange/api/internal/handler"
+	"github.com/revueexchange/api/internal/service"
 	"github.com/revueexchange/api/pkg/logger"
 )
 
@@ -30,7 +31,7 @@ func main() {
 	defer repo.Close()
 
 	// Initialize services
-	services := config.InitServices(repo, cfg)
+	services := service.NewServices(repo, cfg)
 
 	// Setup router
 	router := handler.SetupRouter(services, cfg)

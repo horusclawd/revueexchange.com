@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/revueexchange/api/internal/config"
+	authmware "github.com/revueexchange/api/internal/middleware"
 	"github.com/revueexchange/api/internal/service"
 )
 
@@ -46,7 +45,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
-		r.Use(h.AuthMiddleware(cfg.JWTSecret))
+		r.Use(authmware.AuthMiddleware(cfg.JWTSecret))
 		r.Get("/api/v1/auth/me", h.Me)
 		r.Put("/api/v1/users/{id}", h.UpdateUser)
 

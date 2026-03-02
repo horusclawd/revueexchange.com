@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/revueexchange/api/internal/model"
-	"github.com/revueexchange/api/internal/service"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,6 +15,12 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 	Error   string     `json:"error,omitempty"`
 	Message string     `json:"message,omitempty"`
+}
+
+// TokenResponse represents an auth response with token
+type TokenResponse struct {
+	User  *model.User `json:"user"`
+	Token string      `json:"token"`
 }
 
 // HealthCheck handles GET /health
@@ -49,8 +54,16 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate token
+	token, err := h.AuthService.GenerateToken(user.ID)
+	if err != nil {
+		log.Error().Err(err).Msg("token generation failed")
+		http.Error(w, "failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Response{Data: user})
+	json.NewEncoder(w).Encode(Response{Data: TokenResponse{User: user, Token: token}})
 }
 
 // Login handles POST /api/v1/auth/login
@@ -71,8 +84,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate token
+	token, err := h.AuthService.GenerateToken(user.ID)
+	if err != nil {
+		log.Error().Err(err).Msg("token generation failed")
+		http.Error(w, "failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Response{Data: user})
+	json.NewEncoder(w).Encode(Response{Data: TokenResponse{User: user, Token: token}})
 }
 
 // Me handles GET /api/v1/auth/me

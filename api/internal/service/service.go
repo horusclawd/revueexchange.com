@@ -103,6 +103,11 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*model
 	return user, nil
 }
 
+// GenerateToken generates a JWT token for a user
+func (s *AuthService) GenerateToken(userID uuid.UUID) (string, error) {
+	return GenerateToken(userID, s.cfg.JWTSecret)
+}
+
 // BountyService handles bounty operations
 type BountyService struct {
 	repo *repository.Repository
