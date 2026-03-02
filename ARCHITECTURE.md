@@ -1,61 +1,14 @@
 # RevUExchange - Architecture Plan
 
-## Quick Summary
-
-| Aspect | Option A | Option B |
-|--------|----------|----------|
-| **Frontend** | Next.js 14 (React) | React + Vite |
-| **Backend API** | Next.js API Routes / Lambda | Go (Golang) |
-| **Styling** | Tailwind CSS | Tailwind CSS |
-| **Database** | Aurora PostgreSQL | Aurora PostgreSQL |
-| **Infrastructure** | AWS Serverless | AWS Containers |
-
----
-
-## Hard Requirements
-
-- Runs on AWS
-- Scalable architecture
-- Clear distinction between UI and API
-- Uses API Gateway and/or messaging (SQS, EventBridge)
-
----
-
-# Option A: Serverless (Next.js + Lambda)
-
 ## Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 14 (React) - TypeScript |
-| **Backend** | AWS Lambda - Node.js/TypeScript |
-| **API** | API Gateway REST |
-| **Database** | Aurora PostgreSQL (Serverless v2) |
-| **Cache** | ElastiCache Redis |
-| **NoSQL** | DynamoDB |
-| **Storage** | S3 |
-| **Auth** | Amazon Cognito + JWT |
-| **Messaging** | EventBridge + SQS |
-| **Payments** | Stripe |
-| **Email** | SendGrid |
-| **IaC** | AWS CDK (TypeScript) |
-| **CI/CD** | GitHub Actions |
-
-### Monthly Cost: ~$134/month
-
----
-
-# Option B: Go API + React Frontend (Recommended)
-
-## Stack
-
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 18 + Vite |
+| **Frontend** | React 18 + Vite + TypeScript |
 | **Styling** | Tailwind CSS |
 | **Backend API** | Go (Golang) |
 | **API Gateway** | AWS API Gateway (HTTP API) |
-| **Compute** | AWS Lambda OR ECS Fargate |
+| **Compute** | AWS ECS Fargate |
 | **Database** | Aurora PostgreSQL |
 | **Cache** | ElastiCache Redis |
 | **NoSQL** | DynamoDB |
@@ -64,27 +17,14 @@
 | **Messaging** | EventBridge + SQS |
 | **Payments** | Stripe |
 | **Email** | SendGrid |
-| **IaC** | AWS CDK (TypeScript) |
+| **IaC** | Terraform |
 | **CI/CD** | GitHub Actions |
 
 ### Monthly Cost: ~$150-200/month
 
 ---
 
-## Why Go?
-
-| Factor | Benefit |
-|--------|---------|
-| **Performance** | 10-20x faster than Node.js for compute-heavy tasks |
-| **Binary size** | Small Lambda packages (5-10MB vs 50MB+ Node.js) |
-| **Cold starts** | Much faster startup (10-50ms vs 100-500ms) |
-| **Concurrency** | Native goroutines for parallel processing |
-| **Type safety** | Static typing catches errors at compile time |
-| **Production** | Used by Google, Uber, Twitch, CloudFlare |
-
----
-
-## Architecture Diagram (Option B)
+## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -93,7 +33,7 @@
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                    CloudFront (Global CDN)                             │   │
-│  │               200+ Edge Locations Worldwide                          │   │
+│  │               200+ Edge Locations Worldwide                            │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                          │
 │           ┌────────────────────────┴────────────────────────┐               │
@@ -114,14 +54,14 @@
 │           ┌───────────────────────────────────────────────┼────────┐         │
 │           ▼                                               ▼        ▼         │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐        │
-│  │   Lambda (Go)   │    │  ECS Fargate    │    │   Lambda (Go)   │        │
-│  │   - Auth        │    │   - Core API    │    │   - Async       │        │
-│  │   - Lightweight │    │   - Business    │    │   - Workers     │        │
-│  │                 │    │     Logic       │    │                 │        │
-│  └─────────────────┘    └────────┬────────┘    └─────────────────┘        │
-│                                   │                                          │
-├───────────────────────────────────┼──────────────────────────────────────────┤
-│                                   ▼                                          │
+│  │   ECS Fargate   │    │  ECS Fargate    │    │  ECS Fargate    │        │
+│  │   - Core API     │    │  - Workers      │    │  - Scheduled    │        │
+│  │   - Business     │    │  - Email        │    │  - Analytics    │        │
+│  │     Logic        │    │  - Webhooks     │    │  - Cleanup      │        │
+│  └────────┬────────┘    └─────────────────┘    └─────────────────┘        │
+│           │                                                                  │
+├───────────┼──────────────────────────────────────────────────────────────────┤
+│           ▼                                                                  │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                     Amazon EventBridge                                │   │
 │  │   user.registered  │  review.submitted  │  bounty.created           │   │
@@ -129,15 +69,9 @@
 │           │                        │                        │                │
 │           ▼                        ▼                        ▼                │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐        │
-│  │   Lambda:      │    │   Lambda:      │    │   Lambda:      │        │
-│  │  Notifications │    │  Analytics     │    │  Workflows     │        │
-│  │  (SendGrid)    │    │  (Aggregations)│    │  (State Mach.)│        │
+│  │   SQS:         │    │   SQS:         │    │   SQS:         │        │
+│  │  notifications │    │  webhooks       │    │  exports        │        │
 │  └─────────────────┘    └─────────────────┘    └─────────────────┘        │
-│                                                                              │
-  ┌────────────────────────────────│──────────────────────────────────────┐   │
-│  │                     Amazon SQS                                        │   │
-│  │   email-queue  │  webhook-queue  │  export-queue                   │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                              Data Layer                                       │
@@ -147,11 +81,11 @@
 │  │   (Serverless v2)   │  │   (Cluster Mode)    │                          │
 │  │                     │  │                      │                          │
 │  │  Primary Data:      │  │  • Sessions         │                          │
-│  │  • Users            │  │  • API Cache         │                          │
+│  │  • Users            │  │  • API Cache        │                          │
 │  │  • Bounties         │  │  • Rate Limiting    │                          │
-│  │  • Reviews         │  │  • Real-time stats  │                          │
-│  │  • Point TXs       │  │  • Leaderboard      │                          │
-│  │  • Follows          │  │                      │                          │
+│  │  • Reviews          │  │  • Real-time stats  │                          │
+│  │  • Point TXs        │  │  • Leaderboard      │                          │
+│  │  • Follows           │  │                      │                          │
 │  └─────────────────────┘  └─────────────────────┘                          │
 │                                                                              │
 │  ┌─────────────────────┐  ┌─────────────────────┐                          │
@@ -176,6 +110,19 @@
 
 ---
 
+## Why Go?
+
+| Factor | Benefit |
+|--------|---------|
+| **Performance** | 10-20x faster than Node.js for compute-heavy tasks |
+| **Binary size** | Small Docker images (~20MB) |
+| **Startup** | Fast container startup |
+| **Concurrency** | Native goroutines for parallel processing |
+| **Type safety** | Static typing catches errors at compile time |
+| **Production** | Used by Google, Uber, Twitch, CloudFlare |
+
+---
+
 ## Go API Structure
 
 ### Directory Layout
@@ -191,9 +138,8 @@
   /handler          # HTTP handlers
   /middleware       # Auth, logging, cors
   /model            # Database models
-  /repository      # Database queries
+  /repository       # Database queries
   /service          # Business logic
-  /transport        # HTTP, GRPC, events
 /pkg
   /logger           # Structured logging
   /errors           # Error handling
@@ -202,49 +148,32 @@
 /migrations         # Database migrations
 ```
 
-### HTTP Handlers
+### API Endpoints
 
-```go
-// Handlers structure
-type Handler struct {
-    userService    *service.UserService
-    bountyService  *service.BountyService
-    reviewService  *service.ReviewService
-    pointsService  *service.PointsService
-    paymentService *service.PaymentService
-}
-
-// Routes setup
-func (h *Handler) Routes(router *chi.Mux) {
-    // Auth
-    router.Post("/api/v1/auth/register", h.Register)
-    router.Post("/api/v1/auth/login", h.Login)
-
-    // Users
-    router.Get("/api/v1/users/{id}", h.GetUser)
-    router.Put("/api/v1/users/{id}", h.UpdateUser)
-
-    // Bounties
-    router.Get("/api/v1/bounties", h.ListBounties)
-    router.Post("/api/v1/bounties", h.CreateBounty)
-    router.Get("/api/v1/bounties/{id}", h.GetBounty)
-    router.Post("/api/v1/bounties/{id}/claim", h.ClaimBounty)
-
-    // Reviews
-    router.Post("/api/v1/reviews", h.CreateReview)
-    router.Get("/api/v1/reviews/{id}", h.GetReview)
-    router.Put("/api/v1/reviews/{id}", h.UpdateReview)
-    router.Post("/api/v1/reviews/{id}/submit", h.SubmitReview)
-
-    // Points
-    router.Get("/api/v1/points/balance", h.GetBalance)
-    router.Get("/api/v1/points/transactions", h.GetTransactions)
-
-    // Payments
-    router.Post("/api/v1/payments/checkout", h.CreateCheckout)
-    router.Post("/api/v1/payments/webhook", h.HandleWebhook)
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/v1/auth/register | Register new user |
+| POST | /api/v1/auth/login | Login |
+| GET | /api/v1/auth/me | Get current user |
+| GET | /api/v1/users/{id} | Get user profile |
+| PUT | /api/v1/users/{id} | Update user |
+| GET | /api/v1/bounties | List bounties |
+| POST | /api/v1/bounties | Create bounty |
+| GET | /api/v1/bounties/{id} | Get bounty |
+| POST | /api/v1/bounties/{id}/claim | Claim bounty |
+| POST | /api/v1/reviews | Create review |
+| GET | /api/v1/reviews/{id} | Get review |
+| PUT | /api/v1/reviews/{id} | Update review |
+| POST | /api/v1/reviews/{id}/submit | Submit review |
+| GET | /api/v1/points/balance | Get points balance |
+| GET | /api/v1/points/transactions | Get point history |
+| POST | /api/v1/payments/checkout | Create Stripe session |
+| POST | /api/v1/payments/webhook | Stripe webhook |
+| GET | /api/v1/analytics/overview | Dashboard stats |
+| GET | /api/v1/social/feed | Activity feed |
+| POST | /api/v1/social/follow/{id} | Follow user |
+| GET | /api/v1/gamification/badges | Get user badges |
+| GET | /api/v1/gamification/leaderboard | Get leaderboard |
 
 ---
 
@@ -271,85 +200,9 @@ func (h *Handler) Routes(router *chi.Mux) {
   /context          # React context (Auth, Theme)
 ```
 
-### Tailwind CSS Setup
-
-```javascript
-// tailwind.config.js
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-        }
-      }
-    },
-  },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-  ],
-}
-```
-
-### API Client
-
-```typescript
-// services/api.ts
-const API_BASE = import.meta.env.VITE_API_URL;
-
-class ApiClient {
-  private baseUrl: string;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit): Promise<T> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async getBounties(filters: BountyFilters): Promise<Bounty[]> {
-    const params = new URLSearchParams(filters as any);
-    return this.request(`/bounties?${params}`, { method: 'GET' });
-  }
-
-  async createBounty(data: CreateBountyDto): Promise<Bounty> {
-    return this.request('/bounties', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-}
-
-export const api = new ApiClient(API_BASE);
-```
-
 ---
 
-## Database Schema (Both Options)
+## Database Schema
 
 ### PostgreSQL Tables
 
@@ -470,37 +323,34 @@ CREATE INDEX idx_point_transactions_user ON point_transactions(user_id);
 
 ---
 
-## Comparison
+## Local Development
 
-| Aspect | Option A (Next.js) | Option B (Go + React) |
-|--------|-------------------|----------------------|
-| **Frontend** | Next.js | React + Vite |
-| **Backend** | Node.js Lambda | Go Lambda/Fargate |
-| **Cold Start** | 100-500ms | 10-50ms |
-| **Dev Experience** | Single repo, full-stack | Clear separation |
-| **Learning Curve** | Lower | Higher (Go) |
-| **Startup Time** | Faster to build | More setup |
-| **Best For** | MVPs, solo devs | Production, teams |
+### Prerequisites
+- Docker & Docker Compose
+- Go 1.21+
+- Node.js 18+
+- Terraform
 
----
+### Setup
 
-## Recommendation
+```bash
+# Start local infrastructure (PostgreSQL, Redis)
+docker-compose up -d
 
-**Option B (Go + React)** is recommended because:
+# Start Go API
+cd api && go run cmd/api/main.go
 
-1. **Clear UI/API separation** - Your hard requirement
-2. **Go performance** - Faster cold starts, better throughput
-3. **React + Vite** - You didn't specify a frontend framework, this is the standard choice
-4. **Tailwind CSS** - Most popular, efficient stylesheet framework
-5. **TypeScript** - Full-stack type safety
+# Start React frontend
+cd frontend && npm run dev
+```
 
 ---
 
 ## Next Steps
 
-1. Choose Option A or B
-2. Set up AWS account
-3. Initialize project (CDK, frontend, backend)
+1. Initialize Go API project
+2. Initialize React frontend project
+3. Set up Terraform infrastructure
 4. Build authentication
 5. Implement core features
 6. Deploy
