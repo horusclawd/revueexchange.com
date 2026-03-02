@@ -62,6 +62,8 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Get("/api/v1/bounties", h.ListBounties)
 		r.Post("/api/v1/bounties", h.CreateBounty)
 		r.Get("/api/v1/bounties/{id}", h.GetBounty)
+		r.Post("/api/v1/bounties/{id}/claim", h.ClaimBounty)
+		r.Delete("/api/v1/bounties/{id}", h.CancelBounty)
 
 		// Points
 		r.Get("/api/v1/points/balance", h.GetBalance)

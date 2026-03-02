@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -149,9 +150,75 @@ func (r *Repository) CreateBounty(ctx context.Context, bounty *model.Bounty) err
 	return err
 }
 
-func (r *Repository) GetBounties(ctx context.Context, limit, offset int) ([]model.Bounty, error) {
-	query := `SELECT id, user_id, product_id, bounty_points, bounty_cash, status, requirements, claimed_by, claimed_at, completed_at, created_at, updated_at FROM bounties ORDER BY created_at DESC LIMIT $1 OFFSET $2`
-	rows, err := r.db.Query(ctx, query, limit, offset)
+// BountyFilters holds filter parameters for bounties
+type BountyFilters struct {
+	Status     string
+	Genre      string
+	Type       string
+	MinPoints  int
+	MaxPoints  int
+	UserID     uuid.UUID
+	ClaimedBy  uuid.UUID
+}
+
+func (r *Repository) GetBounties(ctx context.Context, filters BountyFilters, limit, offset int) ([]model.Bounty, error) {
+	// Build dynamic query
+	query := `
+		SELECT b.id, b.user_id, b.product_id, b.bounty_points, b.bounty_cash, b.status, b.requirements,
+		       b.claimed_by, b.claimed_at, b.completed_at, b.created_at, b.updated_at
+		FROM bounties b
+		JOIN products p ON b.product_id = p.id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argNum := 1
+
+	if filters.Status != "" {
+		query += fmt.Sprintf(" AND b.status = $%d", argNum)
+		args = append(args, filters.Status)
+		argNum++
+	}
+
+	if filters.Genre != "" {
+		query += fmt.Sprintf(" AND p.genre = $%d", argNum)
+		args = append(args, filters.Genre)
+		argNum++
+	}
+
+	if filters.Type != "" {
+		query += fmt.Sprintf(" AND p.type = $%d", argNum)
+		args = append(args, filters.Type)
+		argNum++
+	}
+
+	if filters.MinPoints > 0 {
+		query += fmt.Sprintf(" AND b.bounty_points >= $%d", argNum)
+		args = append(args, filters.MinPoints)
+		argNum++
+	}
+
+	if filters.MaxPoints > 0 {
+		query += fmt.Sprintf(" AND b.bounty_points <= $%d", argNum)
+		args = append(args, filters.MaxPoints)
+		argNum++
+	}
+
+	if filters.UserID != uuid.Nil {
+		query += fmt.Sprintf(" AND b.user_id = $%d", argNum)
+		args = append(args, filters.UserID)
+		argNum++
+	}
+
+	if filters.ClaimedBy != uuid.Nil {
+		query += fmt.Sprintf(" AND b.claimed_by = $%d", argNum)
+		args = append(args, filters.ClaimedBy)
+		argNum++
+	}
+
+	query += fmt.Sprintf(" ORDER BY b.created_at DESC LIMIT $%d OFFSET $%d", argNum, argNum+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -168,6 +235,18 @@ func (r *Repository) GetBounties(ctx context.Context, limit, offset int) ([]mode
 	return bounties, nil
 }
 
+func (r *Repository) GetBountyCount(ctx context.Context, filters BountyFilters) (int, error) {
+	query := `SELECT COUNT(*) FROM bounties b JOIN products p ON b.product_id = p.id WHERE 1=1`
+	var count int
+
+	if filters.Status != "" {
+		query += " AND b.status = '" + filters.Status + "'"
+	}
+
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	return count, err
+}
+
 func (r *Repository) GetBountyByID(ctx context.Context, id uuid.UUID) (*model.Bounty, error) {
 	query := `SELECT id, user_id, product_id, bounty_points, bounty_cash, status, requirements, claimed_by, claimed_at, completed_at, created_at, updated_at FROM bounties WHERE id = $1`
 	row := r.db.QueryRow(ctx, query, id)
@@ -178,6 +257,15 @@ func (r *Repository) GetBountyByID(ctx context.Context, id uuid.UUID) (*model.Bo
 		return nil, err
 	}
 	return &b, nil
+}
+
+func (r *Repository) UpdateBounty(ctx context.Context, bounty *model.Bounty) error {
+	query := `
+		UPDATE bounties SET status = $1, claimed_by = $2, claimed_at = $3, completed_at = $4, updated_at = $5
+		WHERE id = $6
+	`
+	_, err := r.db.Exec(ctx, query, bounty.Status, bounty.ClaimedBy, bounty.ClaimedAt, bounty.CompletedAt, bounty.UpdatedAt, bounty.ID)
+	return err
 }
 
 // CreatePointTransaction creates a point transaction

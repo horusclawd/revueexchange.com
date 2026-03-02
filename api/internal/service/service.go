@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/revueexchange/api/internal/config"
@@ -148,8 +149,8 @@ func NewBountyService(repo *repository.Repository) *BountyService {
 	return &BountyService{repo: repo}
 }
 
-func (s *BountyService) GetBounties(ctx context.Context, limit, offset int) ([]model.Bounty, error) {
-	return s.repo.GetBounties(ctx, limit, offset)
+func (s *BountyService) GetBounties(ctx context.Context, filters repository.BountyFilters, limit, offset int) ([]model.Bounty, error) {
+	return s.repo.GetBounties(ctx, filters, limit, offset)
 }
 
 func (s *BountyService) GetBountyByID(ctx context.Context, id uuid.UUID) (*model.Bounty, error) {
@@ -159,6 +160,65 @@ func (s *BountyService) GetBountyByID(ctx context.Context, id uuid.UUID) (*model
 func (s *BountyService) CreateBounty(ctx context.Context, bounty *model.Bounty) error {
 	return s.repo.CreateBounty(ctx, bounty)
 }
+
+// ClaimBounty claims a bounty for review
+func (s *BountyService) ClaimBounty(ctx context.Context, bountyID, reviewerID uuid.UUID) (*model.Bounty, error) {
+	bounty, err := s.repo.GetBountyByID(ctx, bountyID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Anti-swap: Check if user has already reviewed this author's products
+	// (simplified version - in production would check review history)
+	if bounty.UserID == reviewerID {
+		return nil, ErrCannotClaimOwnBounty
+	}
+
+	if bounty.Status != "open" {
+		return nil, ErrBountyNotAvailable
+	}
+
+	now := time.Now()
+	bounty.Status = "claimed"
+	bounty.ClaimedBy = &reviewerID
+	bounty.ClaimedAt = &now
+	bounty.UpdatedAt = now
+
+	if err := s.repo.UpdateBounty(ctx, bounty); err != nil {
+		return nil, err
+	}
+
+	return bounty, nil
+}
+
+// CancelBounty cancels an open bounty
+func (s *BountyService) CancelBounty(ctx context.Context, bountyID, userID uuid.UUID) error {
+	bounty, err := s.repo.GetBountyByID(ctx, bountyID)
+	if err != nil {
+		return err
+	}
+
+	// Only the creator can cancel
+	if bounty.UserID != userID {
+		return ErrUnauthorized
+	}
+
+	if bounty.Status != "open" {
+		return ErrBountyNotAvailable
+	}
+
+	bounty.Status = "cancelled"
+	bounty.UpdatedAt = time.Now()
+
+	return s.repo.UpdateBounty(ctx, bounty)
+}
+
+// Service errors
+var (
+	ErrCannotClaimOwnBounty = &ServiceError{Message: "cannot claim your own bounty"}
+	ErrBountyNotAvailable   = &ServiceError{Message: "bounty is not available"}
+	ErrUnauthorized          = &ServiceError{Message: "unauthorized"}
+)
 
 // PointsService handles points operations
 type PointsService struct {

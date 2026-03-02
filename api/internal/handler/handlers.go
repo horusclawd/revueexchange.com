@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/revueexchange/api/internal/model"
+	"github.com/revueexchange/api/internal/repository"
 	"github.com/rs/zerolog/log"
 )
 
@@ -164,7 +166,31 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 // ListBounties handles GET /api/v1/bounties
 func (h *Handler) ListBounties(w http.ResponseWriter, r *http.Request) {
-	bounties, err := h.BountyService.GetBounties(r.Context(), 20, 0)
+	// Parse query parameters
+	limit := 20
+	offset := 0
+
+	if l := r.URL.Query().Get("limit"); l != "" {
+		fmt.Sscanf(l, "%d", &limit)
+	}
+	if o := r.URL.Query().Get("offset"); o != "" {
+		fmt.Sscanf(o, "%d", &offset)
+	}
+
+	filters := repository.BountyFilters{
+		Status:    r.URL.Query().Get("status"),
+		Genre:     r.URL.Query().Get("genre"),
+		Type:      r.URL.Query().Get("type"),
+	}
+
+	if minPoints := r.URL.Query().Get("min_points"); minPoints != "" {
+		fmt.Sscanf(minPoints, "%d", &filters.MinPoints)
+	}
+	if maxPoints := r.URL.Query().Get("max_points"); maxPoints != "" {
+		fmt.Sscanf(maxPoints, "%d", &filters.MaxPoints)
+	}
+
+	bounties, err := h.BountyService.GetBounties(r.Context(), filters, limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -226,6 +252,56 @@ func (h *Handler) CreateBounty(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Data: bounty})
+}
+
+// ClaimBounty handles POST /api/v1/bounties/{id}/claim
+func (h *Handler) ClaimBounty(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid bounty id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	bounty, err := h.BountyService.ClaimBounty(r.Context(), id, userID)
+	if err != nil {
+		if err.Error() == "cannot claim your own bounty" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: bounty})
+}
+
+// CancelBounty handles DELETE /api/v1/bounties/{id}
+func (h *Handler) CancelBounty(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid bounty id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	err = h.BountyService.CancelBounty(r.Context(), id, userID)
+	if err != nil {
+		if err.Error() == "bounty is not available" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Bounty cancelled"})
 }
 
 // GetBalance handles GET /api/v1/points/balance
