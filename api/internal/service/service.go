@@ -16,6 +16,7 @@ type Services struct {
 	AuthService   *AuthService
 	ProductService *ProductService
 	BountyService *BountyService
+	ReviewService *ReviewService
 	PointsService *PointsService
 }
 
@@ -26,6 +27,7 @@ func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
 		AuthService:   NewAuthService(repo, cfg),
 		ProductService: NewProductService(repo),
 		BountyService: NewBountyService(repo),
+		ReviewService: NewReviewService(repo),
 		PointsService: NewPointsService(repo),
 	}
 }
@@ -219,6 +221,72 @@ var (
 	ErrBountyNotAvailable   = &ServiceError{Message: "bounty is not available"}
 	ErrUnauthorized          = &ServiceError{Message: "unauthorized"}
 )
+
+// ReviewService handles review operations
+type ReviewService struct {
+	repo *repository.Repository
+}
+
+func NewReviewService(repo *repository.Repository) *ReviewService {
+	return &ReviewService{repo: repo}
+}
+
+func (s *ReviewService) CreateReview(ctx context.Context, review *model.Review) error {
+	return s.repo.CreateReview(ctx, review)
+}
+
+func (s *ReviewService) GetReviewByID(ctx context.Context, id uuid.UUID) (*model.Review, error) {
+	return s.repo.GetReviewByID(ctx, id)
+}
+
+func (s *ReviewService) GetReviewByBountyID(ctx context.Context, bountyID uuid.UUID) (*model.Review, error) {
+	return s.repo.GetReviewByBountyID(ctx, bountyID)
+}
+
+func (s *ReviewService) GetReviewsByReviewer(ctx context.Context, reviewerID uuid.UUID) ([]model.Review, error) {
+	return s.repo.GetReviewsByReviewer(ctx, reviewerID)
+}
+
+func (s *ReviewService) UpdateReview(ctx context.Context, review *model.Review) error {
+	return s.repo.UpdateReview(ctx, review)
+}
+
+// SubmitReview submits a review and awards points
+func (s *ReviewService) SubmitReview(ctx context.Context, reviewID, reviewerID uuid.UUID, bountyPoints int) (*model.Review, error) {
+	review, err := s.repo.GetReviewByID(ctx, reviewID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify reviewer owns the review
+	if review.ReviewerID != reviewerID {
+		return nil, ErrUnauthorized
+	}
+
+	// Can only submit draft reviews
+	if review.Status != "draft" {
+		return nil, &ServiceError{Message: "review already submitted"}
+	}
+
+	// Validate word count (minimum 100 words)
+	if review.WordCount != nil && *review.WordCount < 100 {
+		return nil, &ServiceError{Message: "review must be at least 100 words"}
+	}
+
+	// Validate rating (1-5)
+	if review.Rating < 1 || review.Rating > 5 {
+		return nil, &ServiceError{Message: "rating must be between 1 and 5"}
+	}
+
+	review.Status = "submitted"
+	review.UpdatedAt = time.Now()
+
+	if err := s.repo.UpdateReview(ctx, review); err != nil {
+		return nil, err
+	}
+
+	return review, nil
+}
 
 // PointsService handles points operations
 type PointsService struct {

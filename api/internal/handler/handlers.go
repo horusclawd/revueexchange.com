@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -302,6 +303,155 @@ func (h *Handler) CancelBounty(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Message: "Bounty cancelled"})
+}
+
+// CreateReview handles POST /api/v1/reviews
+func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	var req struct {
+		BountyID uuid.UUID `json:"bounty_id"`
+		Rating   int       `json:"rating"`
+		Title    *string   `json:"title"`
+		Content  *string   `json:"content"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Calculate word count from content
+	var wordCount *int
+	if req.Content != nil {
+		count := len(*req.Content)
+		wordCount = &count
+	}
+
+	review := &model.Review{
+		ID:         uuid.New(),
+		BountyID:   req.BountyID,
+		ReviewerID: userID,
+		Rating:     req.Rating,
+		Title:      req.Title,
+		Content:    req.Content,
+		WordCount:  wordCount,
+		Status:     "draft",
+	}
+
+	if err := h.ReviewService.CreateReview(r.Context(), review); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(Response{Data: review})
+}
+
+// GetReview handles GET /api/v1/reviews/{id}
+func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid review id", http.StatusBadRequest)
+		return
+	}
+
+	review, err := h.ReviewService.GetReviewByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "review not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: review})
+}
+
+// UpdateReview handles PUT /api/v1/reviews/{id}
+func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid review id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	// Get existing review
+	review, err := h.ReviewService.GetReviewByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "review not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership
+	if review.ReviewerID != userID {
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Rating  *int    `json:"rating"`
+		Title   *string `json:"title"`
+		Content *string `json:"content"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Rating != nil {
+		review.Rating = *req.Rating
+	}
+	if req.Title != nil {
+		review.Title = req.Title
+	}
+	if req.Content != nil {
+		review.Content = req.Content
+		count := len(*req.Content)
+		review.WordCount = &count
+	}
+
+	review.UpdatedAt = time.Now()
+
+	if err := h.ReviewService.UpdateReview(r.Context(), review); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: review})
+}
+
+// SubmitReview handles POST /api/v1/reviews/{id}/submit
+func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid review id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	// Get bounty to find points
+	bounty, err := h.BountyService.GetBountyByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "bounty not found", http.StatusNotFound)
+		return
+	}
+
+	review, err := h.ReviewService.SubmitReview(r.Context(), id, userID, bounty.BountyPoints)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: review})
 }
 
 // GetBalance handles GET /api/v1/points/balance

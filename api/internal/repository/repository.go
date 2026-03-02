@@ -137,6 +137,78 @@ func (r *Repository) DeleteProduct(ctx context.Context, id, userID uuid.UUID) er
 	return err
 }
 
+// Review methods
+func (r *Repository) CreateReview(ctx context.Context, review *model.Review) error {
+	query := `
+		INSERT INTO reviews (id, bounty_id, reviewer_id, rating, title, content, word_count, verified_purchase, status, amazon_review_url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`
+	_, err := r.db.Exec(ctx, query,
+		review.ID, review.BountyID, review.ReviewerID, review.Rating, review.Title,
+		review.Content, review.WordCount, review.VerifiedPurchase, review.Status,
+		review.AmazonReviewURL, review.CreatedAt, review.UpdatedAt,
+	)
+	return err
+}
+
+func (r *Repository) GetReviewByID(ctx context.Context, id uuid.UUID) (*model.Review, error) {
+	query := `SELECT id, bounty_id, reviewer_id, rating, title, content, word_count, verified_purchase, status, amazon_review_url, created_at, updated_at FROM reviews WHERE id = $1`
+	row := r.db.QueryRow(ctx, query, id)
+
+	var review model.Review
+	err := row.Scan(&review.ID, &review.BountyID, &review.ReviewerID, &review.Rating,
+		&review.Title, &review.Content, &review.WordCount, &review.VerifiedPurchase,
+		&review.Status, &review.AmazonReviewURL, &review.CreatedAt, &review.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &review, nil
+}
+
+func (r *Repository) GetReviewByBountyID(ctx context.Context, bountyID uuid.UUID) (*model.Review, error) {
+	query := `SELECT id, bounty_id, reviewer_id, rating, title, content, word_count, verified_purchase, status, amazon_review_url, created_at, updated_at FROM reviews WHERE bounty_id = $1`
+	row := r.db.QueryRow(ctx, query, bountyID)
+
+	var review model.Review
+	err := row.Scan(&review.ID, &review.BountyID, &review.ReviewerID, &review.Rating,
+		&review.Title, &review.Content, &review.WordCount, &review.VerifiedPurchase,
+		&review.Status, &review.AmazonReviewURL, &review.CreatedAt, &review.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &review, nil
+}
+
+func (r *Repository) GetReviewsByReviewer(ctx context.Context, reviewerID uuid.UUID) ([]model.Review, error) {
+	query := `SELECT id, bounty_id, reviewer_id, rating, title, content, word_count, verified_purchase, status, amazon_review_url, created_at, updated_at FROM reviews WHERE reviewer_id = $1 ORDER BY created_at DESC`
+	rows, err := r.db.Query(ctx, query, reviewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reviews []model.Review
+	for rows.Next() {
+		var review model.Review
+		if err := rows.Scan(&review.ID, &review.BountyID, &review.ReviewerID, &review.Rating,
+			&review.Title, &review.Content, &review.WordCount, &review.VerifiedPurchase,
+			&review.Status, &review.AmazonReviewURL, &review.CreatedAt, &review.UpdatedAt); err != nil {
+			return nil, err
+		}
+		reviews = append(reviews, review)
+	}
+	return reviews, nil
+}
+
+func (r *Repository) UpdateReview(ctx context.Context, review *model.Review) error {
+	query := `
+		UPDATE reviews SET rating = $1, title = $2, content = $3, word_count = $4, status = $5, amazon_review_url = $6, updated_at = $7
+		WHERE id = $8
+	`
+	_, err := r.db.Exec(ctx, query, review.Rating, review.Title, review.Content, review.WordCount, review.Status, review.AmazonReviewURL, review.UpdatedAt, review.ID)
+	return err
+}
+
 // Placeholder methods for other entities
 func (r *Repository) CreateBounty(ctx context.Context, bounty *model.Bounty) error {
 	query := `

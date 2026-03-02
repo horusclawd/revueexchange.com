@@ -10,11 +10,12 @@ import (
 
 // Handler holds all handlers
 type Handler struct {
-	AuthService   *service.AuthService
-	UserService   *service.UserService
+	AuthService    *service.AuthService
+	UserService    *service.UserService
 	ProductService *service.ProductService
-	BountyService *service.BountyService
-	PointsService *service.PointsService
+	BountyService  *service.BountyService
+	ReviewService  *service.ReviewService
+	PointsService  *service.PointsService
 }
 
 // SetupRouter sets up the HTTP router
@@ -36,6 +37,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		UserService:    services.UserService,
 		ProductService: services.ProductService,
 		BountyService:  services.BountyService,
+		ReviewService:  services.ReviewService,
 		PointsService:  services.PointsService,
 	}
 
@@ -64,6 +66,12 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Get("/api/v1/bounties/{id}", h.GetBounty)
 		r.Post("/api/v1/bounties/{id}/claim", h.ClaimBounty)
 		r.Delete("/api/v1/bounties/{id}", h.CancelBounty)
+
+		// Reviews
+		r.Post("/api/v1/reviews", h.CreateReview)
+		r.Get("/api/v1/reviews/{id}", h.GetReview)
+		r.Put("/api/v1/reviews/{id}", h.UpdateReview)
+		r.Post("/api/v1/reviews/{id}/submit", h.SubmitReview)
 
 		// Points
 		r.Get("/api/v1/points/balance", h.GetBalance)
