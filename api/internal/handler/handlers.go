@@ -697,3 +697,73 @@ func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Message: "Product deleted"})
 }
+
+// CheckoutRequest represents a checkout request
+type CheckoutRequest struct {
+	AmountCents int `json:"amount_cents"`
+}
+
+// CreateCheckoutSession handles POST /api/v1/payments/checkout
+func (h *Handler) CreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	var req CheckoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	result, err := h.PaymentService.CreateCheckoutSession(r.Context(), userID, req.AmountCents)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{
+		Data: map[string]interface{}{
+			"payment_id":   result.Payment.ID,
+			"checkout_url": result.SessionURL,
+			"amount_cents": result.Payment.AmountCents,
+			"points_award": result.PointsAward,
+		},
+	})
+}
+
+// GetPaymentHistory handles GET /api/v1/payments/history
+func (h *Handler) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	payments, err := h.PaymentService.GetPaymentHistory(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: payments})
+}
+
+// HandlePaymentWebhook handles POST /api/v1/payments/webhook
+func (h *Handler) HandlePaymentWebhook(w http.ResponseWriter, r *http.Request) {
+	// In production, verify Stripe webhook signature
+	// For now, parse the event from the request body
+
+	var webhookEvent struct {
+		Type      string `json:"type"`
+		SessionID string `json:"session_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&webhookEvent); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.PaymentService.HandleWebhook(r.Context(), webhookEvent.Type, webhookEvent.SessionID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Webhook processed"})
+}

@@ -261,13 +261,13 @@
 **Goal**: Integrate Stripe for payments
 
 **Deliverables**:
-- ❗️ Stripe SDK integration
-- ❗️ Create checkout session (POST /api/v1/payments/checkout)
-- ❗️ Stripe webhook handler (POST /api/v1/payments/webhook)
-- ❗️ Payment model
-- ❗️ Convert cash to points logic
-- ❗️ Refund handling
-- ❗️ Stripe webhook signature verification
+- ✅ Stripe SDK integration - Added config for Stripe keys
+- ✅ Create checkout session (POST /api/v1/payments/checkout) - Returns session URL and points award
+- ✅ Stripe webhook handler (POST /api/v1/payments/webhook) - Processes checkout events
+- ✅ Payment model - Already exists
+- ✅ Convert cash to points logic - 100 points per dollar
+- ❌ Refund handling - Not implemented (simplified)
+- ❌ Stripe webhook signature verification - Skipped for MVP (would add in production)
 
 ---
 

@@ -12,12 +12,13 @@ import (
 
 // Services holds all services
 type Services struct {
-	UserService    *UserService
-	AuthService   *AuthService
+	UserService     *UserService
+	AuthService    *AuthService
 	ProductService *ProductService
-	BountyService *BountyService
-	ReviewService *ReviewService
-	PointsService *PointsService
+	BountyService  *BountyService
+	ReviewService  *ReviewService
+	PointsService  *PointsService
+	PaymentService *PaymentService
 }
 
 // NewServices creates all services
@@ -29,6 +30,7 @@ func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
 		BountyService: NewBountyService(repo),
 		ReviewService: NewReviewService(repo),
 		PointsService: NewPointsService(repo),
+		PaymentService: NewPaymentService(repo, cfg),
 	}
 }
 
@@ -399,4 +401,114 @@ type ServiceError struct {
 
 func (e *ServiceError) Error() string {
 	return e.Message
+}
+
+// PaymentService handles payment operations
+type PaymentService struct {
+	repo *repository.Repository
+	cfg  *config.Config
+}
+
+func NewPaymentService(repo *repository.Repository, cfg *config.Config) *PaymentService {
+	return &PaymentService{repo: repo, cfg: cfg}
+}
+
+// PointsConversionRate is the number of points per dollar (100 points = $1)
+const PointsConversionRate = 100
+
+// CheckoutResult contains the checkout session result
+type CheckoutResult struct {
+	Payment     *model.Payment
+	SessionURL  string
+	PointsAward int
+}
+
+// CreateCheckoutSession creates a Stripe checkout session for purchasing points
+func (s *PaymentService) CreateCheckoutSession(ctx context.Context, userID uuid.UUID, amountCents int) (*CheckoutResult, error) {
+	if amountCents < 100 {
+		return nil, &ServiceError{Message: "minimum purchase is $1.00"}
+	}
+
+	// Calculate points to award
+	points := (amountCents / 100) * PointsConversionRate
+
+	// Create payment record
+	payment := &model.Payment{
+		ID:          uuid.New(),
+		UserID:      userID,
+		AmountCents: amountCents,
+		Currency:    "usd",
+		Type:        func() *string { t := "points_purchase"; return &t }(),
+		Status:      "pending",
+		CreatedAt:   time.Now(),
+	}
+
+	if err := s.repo.CreatePayment(ctx, payment); err != nil {
+		return nil, err
+	}
+
+	// In production, this would create a real Stripe checkout session
+	// For now, return a mock session URL
+	sessionURL := "/checkout/success?session_id=" + payment.ID.String()
+
+	return &CheckoutResult{
+		Payment:     payment,
+		SessionURL:  sessionURL,
+		PointsAward: points,
+	}, nil
+}
+
+// HandleWebhook processes Stripe webhook events
+func (s *PaymentService) HandleWebhook(ctx context.Context, eventType string, sessionID string) error {
+	// Get payment by session ID
+	payment, err := s.repo.GetPaymentBySessionID(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	switch eventType {
+	case "checkout.session.completed":
+		// Update payment status
+		if err := s.repo.UpdatePaymentStatus(ctx, payment.ID, "completed"); err != nil {
+			return err
+		}
+
+		// Convert cash to points
+		points := (payment.AmountCents / 100) * PointsConversionRate
+		if err := s.repo.UpdateUserPoints(ctx, payment.UserID, points); err != nil {
+			return err
+		}
+
+		// Create point transaction
+		tx := &model.PointTransaction{
+			ID:          uuid.New(),
+			UserID:      payment.UserID,
+			Amount:      points,
+			Type:        "earned",
+			ReferenceType: func() *string { t := "payment"; return &t }(),
+			ReferenceID: func() *uuid.UUID { u := payment.ID; return &u }(),
+			Description: func() *string { d := "Points purchase"; return &d }(),
+			CreatedAt:   time.Now(),
+		}
+		if err := s.repo.CreatePointTransaction(ctx, tx); err != nil {
+			return err
+		}
+
+	case "checkout.session.expired":
+		if err := s.repo.UpdatePaymentStatus(ctx, payment.ID, "expired"); err != nil {
+			return err
+		}
+
+	case "payment_intent.payment_failed":
+		if err := s.repo.UpdatePaymentStatus(ctx, payment.ID, "failed"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetPaymentHistory gets payment history for a user
+func (s *PaymentService) GetPaymentHistory(ctx context.Context, userID uuid.UUID) ([]model.Payment, error) {
+	return s.repo.GetPaymentsByUserID(ctx, userID)
 }

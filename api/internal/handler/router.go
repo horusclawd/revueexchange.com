@@ -10,12 +10,13 @@ import (
 
 // Handler holds all handlers
 type Handler struct {
-	AuthService    *service.AuthService
-	UserService    *service.UserService
-	ProductService *service.ProductService
-	BountyService  *service.BountyService
-	ReviewService  *service.ReviewService
-	PointsService  *service.PointsService
+	AuthService     *service.AuthService
+	UserService     *service.UserService
+	ProductService  *service.ProductService
+	BountyService   *service.BountyService
+	ReviewService   *service.ReviewService
+	PointsService   *service.PointsService
+	PaymentService  *service.PaymentService
 }
 
 // SetupRouter sets up the HTTP router
@@ -39,6 +40,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		BountyService:  services.BountyService,
 		ReviewService:  services.ReviewService,
 		PointsService:  services.PointsService,
+		PaymentService: services.PaymentService,
 	}
 
 	// Public routes
@@ -77,7 +79,14 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Get("/api/v1/points/balance", h.GetBalance)
 		r.Get("/api/v1/points/transactions", h.GetTransactions)
 		r.Post("/api/v1/points/transfer", h.TransferPoints)
+
+		// Payments
+		r.Post("/api/v1/payments/checkout", h.CreateCheckoutSession)
+		r.Get("/api/v1/payments/history", h.GetPaymentHistory)
 	})
+
+	// Webhook (not protected by auth)
+	r.Post("/api/v1/payments/webhook", h.HandlePaymentWebhook)
 
 	// Health check
 	r.Get("/health", h.HealthCheck)

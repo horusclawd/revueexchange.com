@@ -33,6 +33,11 @@ type Config struct {
 	// AWS
 	AWSRegion    string
 	AWSEndpoint  string
+
+	// Stripe
+	StripeSecretKey    string
+	StripeWebhookSecret string
+	StripePublishableKey string
 }
 
 // Load loads configuration from environment
@@ -58,6 +63,10 @@ func Load() *Config {
 
 		AWSRegion:   getEnv("AWS_REGION", "us-east-1"),
 		AWSEndpoint: getEnv("AWS_ENDPOINT", ""),
+
+		StripeSecretKey:     getEnv("STRIPE_SECRET_KEY", ""),
+		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		StripePublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
 	}
 }
 

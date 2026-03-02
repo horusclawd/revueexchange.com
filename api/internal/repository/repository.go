@@ -386,6 +386,58 @@ func (r *Repository) GetPointTransactions(ctx context.Context, userID uuid.UUID,
 	return txs, nil
 }
 
+// Payment methods
+func (r *Repository) CreatePayment(ctx context.Context, payment *model.Payment) error {
+	query := `
+		INSERT INTO payments (id, user_id, stripe_session_id, stripe_payment_intent, amount_cents, currency, type, status, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+	_, err := r.db.Exec(ctx, query,
+		payment.ID, payment.UserID, payment.StripeSessionID, payment.StripePaymentIntent,
+		payment.AmountCents, payment.Currency, payment.Type, payment.Status, payment.CreatedAt,
+	)
+	return err
+}
+
+func (r *Repository) GetPaymentBySessionID(ctx context.Context, sessionID string) (*model.Payment, error) {
+	query := `SELECT id, user_id, stripe_session_id, stripe_payment_intent, amount_cents, currency, type, status, created_at FROM payments WHERE stripe_session_id = $1`
+	row := r.db.QueryRow(ctx, query, sessionID)
+
+	var payment model.Payment
+	err := row.Scan(&payment.ID, &payment.UserID, &payment.StripeSessionID, &payment.StripePaymentIntent,
+		&payment.AmountCents, &payment.Currency, &payment.Type, &payment.Status, &payment.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &payment, nil
+}
+
+func (r *Repository) UpdatePaymentStatus(ctx context.Context, id uuid.UUID, status string) error {
+	query := `UPDATE payments SET status = $1 WHERE id = $2`
+	_, err := r.db.Exec(ctx, query, status, id)
+	return err
+}
+
+func (r *Repository) GetPaymentsByUserID(ctx context.Context, userID uuid.UUID) ([]model.Payment, error) {
+	query := `SELECT id, user_id, stripe_session_id, stripe_payment_intent, amount_cents, currency, type, status, created_at FROM payments WHERE user_id = $1 ORDER BY created_at DESC`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var payments []model.Payment
+	for rows.Next() {
+		var p model.Payment
+		if err := rows.Scan(&p.ID, &p.UserID, &p.StripeSessionID, &p.StripePaymentIntent,
+			&p.AmountCents, &p.Currency, &p.Type, &p.Status, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		payments = append(payments, p)
+	}
+	return payments, nil
+}
+
 func (r *Repository) Close() {
 	r.db.Close()
 }
