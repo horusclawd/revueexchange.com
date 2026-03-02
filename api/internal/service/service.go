@@ -19,6 +19,7 @@ type Services struct {
 	ReviewService  *ReviewService
 	PointsService  *PointsService
 	PaymentService *PaymentService
+	SocialService  *SocialService
 }
 
 // NewServices creates all services
@@ -31,6 +32,7 @@ func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
 		ReviewService: NewReviewService(repo),
 		PointsService: NewPointsService(repo),
 		PaymentService: NewPaymentService(repo, cfg),
+		SocialService:  NewSocialService(repo),
 	}
 }
 
@@ -511,4 +513,116 @@ func (s *PaymentService) HandleWebhook(ctx context.Context, eventType string, se
 // GetPaymentHistory gets payment history for a user
 func (s *PaymentService) GetPaymentHistory(ctx context.Context, userID uuid.UUID) ([]model.Payment, error) {
 	return s.repo.GetPaymentsByUserID(ctx, userID)
+}
+
+// SocialService handles social operations
+type SocialService struct {
+	repo *repository.Repository
+}
+
+func NewSocialService(repo *repository.Repository) *SocialService {
+	return &SocialService{repo: repo}
+}
+
+// FollowUser follows a user
+func (s *SocialService) FollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	if followerID == followingID {
+		return &ServiceError{Message: "cannot follow yourself"}
+	}
+
+	// Check if already following
+	exists, err := s.repo.IsFollowing(ctx, followerID, followingID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &ServiceError{Message: "already following this user"}
+	}
+
+	follow := &model.Follow{
+		FollowerID:  followerID,
+		FollowingID: followingID,
+		CreatedAt:   time.Now(),
+	}
+
+	if err := s.repo.CreateFollow(ctx, follow); err != nil {
+		return err
+	}
+
+	// Create activity
+	ref := followingID.String()
+	activity := &model.Activity{
+		ID:        uuid.New(),
+		UserID:    followerID,
+		Type:      "follow",
+		Reference: &ref,
+		CreatedAt: time.Now(),
+	}
+	return s.repo.CreateActivity(ctx, activity)
+}
+
+// UnfollowUser unfollows a user
+func (s *SocialService) UnfollowUser(ctx context.Context, followerID, followingID uuid.UUID) error {
+	return s.repo.DeleteFollow(ctx, followerID, followingID)
+}
+
+// GetFollowers gets followers of a user
+func (s *SocialService) GetFollowers(ctx context.Context, userID uuid.UUID) ([]model.User, error) {
+	return s.repo.GetFollowers(ctx, userID)
+}
+
+// GetFollowing gets users that a user is following
+func (s *SocialService) GetFollowing(ctx context.Context, userID uuid.UUID) ([]model.User, error) {
+	return s.repo.GetFollowing(ctx, userID)
+}
+
+// IsFollowing checks if a user is following another
+func (s *SocialService) IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {
+	return s.repo.IsFollowing(ctx, followerID, followingID)
+}
+
+// AddComment adds a comment to a review
+func (s *SocialService) AddComment(ctx context.Context, userID, reviewID uuid.UUID, content string, parentID *uuid.UUID) (*model.Comment, error) {
+	comment := &model.Comment{
+		ID:        uuid.New(),
+		UserID:    userID,
+		ReviewID:  reviewID,
+		ParentID:  parentID,
+		Content:   content,
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.repo.CreateComment(ctx, comment); err != nil {
+		return nil, err
+	}
+
+	// Create activity
+	ref := reviewID.String()
+	activity := &model.Activity{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Type:      "comment",
+		Reference: &ref,
+		CreatedAt: time.Now(),
+	}
+	if err := s.repo.CreateActivity(ctx, activity); err != nil {
+		return nil, err
+	}
+
+	return comment, nil
+}
+
+// GetComments gets comments for a review
+func (s *SocialService) GetComments(ctx context.Context, reviewID uuid.UUID) ([]model.Comment, error) {
+	return s.repo.GetCommentsByReviewID(ctx, reviewID)
+}
+
+// DeleteComment deletes a comment
+func (s *SocialService) DeleteComment(ctx context.Context, commentID, userID uuid.UUID) error {
+	return s.repo.DeleteComment(ctx, commentID, userID)
+}
+
+// GetActivityFeed gets activity feed for a user
+func (s *SocialService) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit, offset int) ([]model.Activity, error) {
+	return s.repo.GetActivityFeed(ctx, userID, limit, offset)
 }

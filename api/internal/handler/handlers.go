@@ -767,3 +767,158 @@ func (h *Handler) HandlePaymentWebhook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Message: "Webhook processed"})
 }
+
+// FollowUser handles POST /api/v1/social/follow/{id}
+func (h *Handler) FollowUser(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	followingID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	if err := h.SocialService.FollowUser(r.Context(), userID, followingID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Followed user"})
+}
+
+// UnfollowUser handles DELETE /api/v1/social/follow/{id}
+func (h *Handler) UnfollowUser(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	followingID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	if err := h.SocialService.UnfollowUser(r.Context(), userID, followingID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Unfollowed user"})
+}
+
+// GetFollowers handles GET /api/v1/social/followers/{id}
+func (h *Handler) GetFollowers(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	userID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	users, err := h.SocialService.GetFollowers(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: users})
+}
+
+// GetFollowing handles GET /api/v1/social/following/{id}
+func (h *Handler) GetFollowing(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	userID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	users, err := h.SocialService.GetFollowing(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: users})
+}
+
+// GetActivityFeed handles GET /api/v1/social/feed
+func (h *Handler) GetActivityFeed(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	activities, err := h.SocialService.GetActivityFeed(r.Context(), userID, 50, 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: activities})
+}
+
+// CommentRequest represents a comment request
+type CommentRequest struct {
+	ReviewID string `json:"review_id"`
+	Content   string `json:"content"`
+	ParentID  string `json:"parent_id"`
+}
+
+// AddComment handles POST /api/v1/comments
+func (h *Handler) AddComment(w http.ResponseWriter, r *http.Request) {
+	var req CommentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	reviewID, err := uuid.Parse(req.ReviewID)
+	if err != nil {
+		http.Error(w, "invalid review id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	var parentID *uuid.UUID
+	if req.ParentID != "" {
+		pid, err := uuid.Parse(req.ParentID)
+		if err != nil {
+			http.Error(w, "invalid parent id", http.StatusBadRequest)
+			return
+		}
+		parentID = &pid
+	}
+
+	comment, err := h.SocialService.AddComment(r.Context(), userID, reviewID, req.Content, parentID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: comment})
+}
+
+// DeleteComment handles DELETE /api/v1/comments/{id}
+func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	commentID, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid comment id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	if err := h.SocialService.DeleteComment(r.Context(), commentID, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Comment deleted"})
+}

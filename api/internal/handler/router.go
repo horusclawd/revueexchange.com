@@ -17,6 +17,7 @@ type Handler struct {
 	ReviewService   *service.ReviewService
 	PointsService   *service.PointsService
 	PaymentService  *service.PaymentService
+	SocialService   *service.SocialService
 }
 
 // SetupRouter sets up the HTTP router
@@ -41,6 +42,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		ReviewService:  services.ReviewService,
 		PointsService:  services.PointsService,
 		PaymentService: services.PaymentService,
+		SocialService:  services.SocialService,
 	}
 
 	// Public routes
@@ -83,6 +85,17 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		// Payments
 		r.Post("/api/v1/payments/checkout", h.CreateCheckoutSession)
 		r.Get("/api/v1/payments/history", h.GetPaymentHistory)
+
+		// Social
+		r.Post("/api/v1/social/follow/{id}", h.FollowUser)
+		r.Delete("/api/v1/social/follow/{id}", h.UnfollowUser)
+		r.Get("/api/v1/social/followers/{id}", h.GetFollowers)
+		r.Get("/api/v1/social/following/{id}", h.GetFollowing)
+		r.Get("/api/v1/social/feed", h.GetActivityFeed)
+
+		// Comments
+		r.Post("/api/v1/comments", h.AddComment)
+		r.Delete("/api/v1/comments/{id}", h.DeleteComment)
 	})
 
 	// Webhook (not protected by auth)

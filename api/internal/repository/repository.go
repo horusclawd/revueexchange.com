@@ -438,6 +438,145 @@ func (r *Repository) GetPaymentsByUserID(ctx context.Context, userID uuid.UUID) 
 	return payments, nil
 }
 
+// Follow methods
+func (r *Repository) CreateFollow(ctx context.Context, follow *model.Follow) error {
+	query := `INSERT INTO follows (follower_id, following_id, created_at) VALUES ($1, $2, $3)`
+	_, err := r.db.Exec(ctx, query, follow.FollowerID, follow.FollowingID, follow.CreatedAt)
+	return err
+}
+
+func (r *Repository) DeleteFollow(ctx context.Context, followerID, followingID uuid.UUID) error {
+	query := `DELETE FROM follows WHERE follower_id = $1 AND following_id = $2`
+	_, err := r.db.Exec(ctx, query, followerID, followingID)
+	return err
+}
+
+func (r *Repository) IsFollowing(ctx context.Context, followerID, followingID uuid.UUID) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2)`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, followerID, followingID).Scan(&exists)
+	return exists, err
+}
+
+func (r *Repository) GetFollowers(ctx context.Context, userID uuid.UUID) ([]model.User, error) {
+	query := `
+		SELECT u.id, u.email, u.password_hash, u.username, u.display_name, u.avatar_url, u.bio, u.points, u.reputation_score, u.subscription_tier, u.created_at, u.updated_at
+		FROM users u
+		JOIN follows f ON u.id = f.follower_id
+		WHERE f.following_id = $1
+		ORDER BY f.created_at DESC
+	`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Username, &u.DisplayName,
+			&u.AvatarURL, &u.Bio, &u.Points, &u.ReputationScore, &u.SubscriptionTier,
+			&u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
+func (r *Repository) GetFollowing(ctx context.Context, userID uuid.UUID) ([]model.User, error) {
+	query := `
+		SELECT u.id, u.email, u.password_hash, u.username, u.display_name, u.avatar_url, u.bio, u.points, u.reputation_score, u.subscription_tier, u.created_at, u.updated_at
+		FROM users u
+		JOIN follows f ON u.id = f.following_id
+		WHERE f.follower_id = $1
+		ORDER BY f.created_at DESC
+	`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Username, &u.DisplayName,
+			&u.AvatarURL, &u.Bio, &u.Points, &u.ReputationScore, &u.SubscriptionTier,
+			&u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
+// Comment methods
+func (r *Repository) CreateComment(ctx context.Context, comment *model.Comment) error {
+	query := `INSERT INTO comments (id, user_id, review_id, parent_id, content, created_at) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.db.Exec(ctx, query, comment.ID, comment.UserID, comment.ReviewID, comment.ParentID, comment.Content, comment.CreatedAt)
+	return err
+}
+
+func (r *Repository) GetCommentsByReviewID(ctx context.Context, reviewID uuid.UUID) ([]model.Comment, error) {
+	query := `SELECT id, user_id, review_id, parent_id, content, created_at FROM comments WHERE review_id = $1 ORDER BY created_at ASC`
+	rows, err := r.db.Query(ctx, query, reviewID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []model.Comment
+	for rows.Next() {
+		var c model.Comment
+		if err := rows.Scan(&c.ID, &c.UserID, &c.ReviewID, &c.ParentID, &c.Content, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		comments = append(comments, c)
+	}
+	return comments, nil
+}
+
+func (r *Repository) DeleteComment(ctx context.Context, commentID, userID uuid.UUID) error {
+	query := `DELETE FROM comments WHERE id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, commentID, userID)
+	return err
+}
+
+// Activity methods
+func (r *Repository) CreateActivity(ctx context.Context, activity *model.Activity) error {
+	query := `INSERT INTO activities (id, user_id, type, reference, created_at) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.Exec(ctx, query, activity.ID, activity.UserID, activity.Type, activity.Reference, activity.CreatedAt)
+	return err
+}
+
+func (r *Repository) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit, offset int) ([]model.Activity, error) {
+	query := `
+		SELECT a.id, a.user_id, a.type, a.reference, a.created_at
+		FROM activities a
+		JOIN follows f ON a.user_id = f.following_id
+		WHERE f.follower_id = $1
+		ORDER BY a.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []model.Activity
+	for rows.Next() {
+		var a model.Activity
+		if err := rows.Scan(&a.ID, &a.UserID, &a.Type, &a.Reference, &a.CreatedAt); err != nil {
+			return nil, err
+		}
+		activities = append(activities, a)
+	}
+	return activities, nil
+}
+
 func (r *Repository) Close() {
 	r.db.Close()
 }

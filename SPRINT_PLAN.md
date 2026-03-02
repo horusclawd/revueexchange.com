@@ -292,15 +292,15 @@
 **Goal**: Follows, activity feed, comments
 
 **Deliverables**:
-- ❗️ Follow model
-- ❗️ Follow user endpoint (POST /api/v1/social/follow/{id})
-- ❗️ Unfollow user endpoint (DELETE /api/v1/social/follow/{id})
-- ❗️ Get followers endpoint (GET /api/v1/social/followers/{id})
-- ❗️ Get following endpoint (GET /api/v1/social/following/{id})
-- ❗️ Activity feed endpoint (GET /api/v1/social/feed)
-- ❗️ Comment model
-- ❗️ Add comment endpoint
-- ❗️ Delete comment endpoint
+- ✅ Follow model - Already exists
+- ✅ Follow user endpoint (POST /api/v1/social/follow/{id}) - Implemented
+- ✅ Unfollow user endpoint (DELETE /api/v1/social/follow/{id}) - Implemented
+- ✅ Get followers endpoint (GET /api/v1/social/followers/{id}) - Implemented
+- ✅ Get following endpoint (GET /api/v1/social/following/{id}) - Implemented
+- ✅ Activity feed endpoint (GET /api/v1/social/feed) - Implemented
+- ✅ Comment model - Added
+- ✅ Add comment endpoint - POST /api/v1/comments
+- ✅ Delete comment endpoint - DELETE /api/v1/comments/{id}
 
 ---
 

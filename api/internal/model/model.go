@@ -122,3 +122,22 @@ type Payment struct {
 	Status             string     `json:"status"`
 	CreatedAt          time.Time  `json:"created_at"`
 }
+
+// Comment represents a comment on a review
+type Comment struct {
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	ReviewID  uuid.UUID  `json:"review_id"`
+	ParentID  *uuid.UUID `json:"parent_id"`
+	Content   string     `json:"content"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+// Activity represents an activity feed item
+type Activity struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Type      string    `json:"type"` // review_submitted, bounty_created, follow, etc.
+	Reference *string   `json:"reference"`
+	CreatedAt time.Time `json:"created_at"`
+}
