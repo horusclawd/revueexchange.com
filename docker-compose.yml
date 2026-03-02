@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  localstack:
+    container_name: revueexchange-localstack
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=apigateway,cloudformation,cloudfront,dynamodb,events,iam,lambda,s3,secretsmanager,sns,sqs,rds,elasticache,ec2
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=local
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOST_TMP_FOLDER=/tmp/localstack
+      - ENABLE_CONFIG_VALIDATIONS=1
+      - START_WEB=0
+    volumes:
+      - "./.localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    container_name: revueexchange-postgres
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=revueadmin
+      - POSTGRES_PASSWORD=revueexchange
+      - POSTGRES_DB=revueexchange
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revueadmin -d revueexchange"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: revueexchange-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
