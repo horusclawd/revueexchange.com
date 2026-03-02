@@ -63,6 +63,11 @@ export const api = {
     return data.data
   },
 
+  async claimBounty(id: string) {
+    const { data } = await client.post<{ data: Bounty }>(`/v1/bounties/${id}/claim`)
+    return data.data
+  },
+
   // Points
   async getBalance() {
     const { data } = await client.get<{ data: { points: number } }>('/v1/points/balance')
