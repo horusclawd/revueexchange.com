@@ -76,6 +76,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		// Points
 		r.Get("/api/v1/points/balance", h.GetBalance)
 		r.Get("/api/v1/points/transactions", h.GetTransactions)
+		r.Post("/api/v1/points/transfer", h.TransferPoints)
 	})
 
 	// Health check

@@ -482,6 +482,39 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Response{Data: txs})
 }
 
+// TransferPoints handles POST /api/v1/points/transfer
+func (h *Handler) TransferPoints(w http.ResponseWriter, r *http.Request) {
+	fromUserID := r.Context().Value("user_id").(uuid.UUID)
+
+	var req struct {
+		ToUserID uuid.UUID `json:"to_user_id"`
+		Amount   int       `json:"amount"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Amount <= 0 {
+		http.Error(w, "amount must be positive", http.StatusBadRequest)
+		return
+	}
+
+	err := h.PointsService.TransferPoints(r.Context(), fromUserID, req.ToUserID, req.Amount)
+	if err != nil {
+		if err.Error() == "insufficient points" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Points transferred successfully"})
+}
+
 // CreateProduct handles POST /api/v1/products
 func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(uuid.UUID)

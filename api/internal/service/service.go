@@ -337,10 +337,60 @@ func (s *PointsService) DeductPoints(ctx context.Context, userID uuid.UUID, amou
 	return s.repo.UpdateUserPoints(ctx, userID, -amount)
 }
 
+// TransferPoints transfers points from one user to another
+func (s *PointsService) TransferPoints(ctx context.Context, fromUserID, toUserID uuid.UUID, amount int) error {
+	if amount <= 0 {
+		return &ServiceError{Message: "amount must be positive"}
+	}
+
+	// Check balance
+	balance, err := s.repo.GetUserPoints(ctx, fromUserID)
+	if err != nil {
+		return err
+	}
+
+	if balance < amount {
+		return ErrInsufficientPoints
+	}
+
+	// Deduct from sender
+	tx := &model.PointTransaction{
+		ID:            uuid.New(),
+		UserID:        fromUserID,
+		Amount:        -amount,
+		Type:          "transferred",
+		ReferenceType: func() *string { s := "transfer"; return &s }(),
+		ReferenceID:   func() *uuid.UUID { u := toUserID; return &u }(),
+		Description:   func() *string { d := "Transfer to user"; return &d }(),
+	}
+
+	if err := s.repo.CreatePointTransaction(ctx, tx); err != nil {
+		return err
+	}
+
+	if err := s.repo.UpdateUserPoints(ctx, fromUserID, -amount); err != nil {
+		return err
+	}
+
+	// Add to receiver
+	tx.ID = uuid.New()
+	tx.UserID = toUserID
+	tx.Amount = amount
+	tx.Type = "received"
+	tx.Description = func() *string { d := "Received transfer"; return &d }()
+
+	if err := s.repo.CreatePointTransaction(ctx, tx); err != nil {
+		return err
+	}
+
+	return s.repo.UpdateUserPoints(ctx, toUserID, amount)
+}
+
 // Service errors
 var (
-	ErrUserAlreadyExists = &ServiceError{Message: "user already exists"}
+	ErrUserAlreadyExists  = &ServiceError{Message: "user already exists"}
 	ErrInvalidCredentials = &ServiceError{Message: "invalid credentials"}
+	ErrInsufficientPoints = &ServiceError{Message: "insufficient points"}
 )
 
 type ServiceError struct {
