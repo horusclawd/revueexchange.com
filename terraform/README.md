@@ -1,75 +1,95 @@
 # RevUExchange Terraform Infrastructure
 
-This directory contains the Terraform infrastructure code for RevUExchange.
+Terraform infrastructure for RevUExchange.
 
 ## Structure
 
 ```
 terraform/
-├── environments/
-│   ├── dev/
-│   │   └── dev.tfvars
-│   └── prod/
-│       └── prod.tfvars
+├── env/
+│   ├── dev/           # Dev environment
+│   │   ├── main.tf
+│   │   └── variables.tf
+│   └── prod/         # Prod environment
+│       ├── main.tf
+│       └── variables.tf
 ├── modules/
-│   ├── api/          # ECS Fargate, API Gateway, ALB
-│   ├── cdn/         # CloudFront, S3 frontend
-│   ├── core/        # VPC, IAM, Cognito, KMS, Secrets
-│   ├── database/    # Aurora, ElastiCache, DynamoDB
-│   ├── events/      # EventBridge, SQS
-│   └── storage/     # S3 buckets
-├── main.tf
+│   ├── networking/    # VPC, subnets, security groups
+│   ├── database/     # RDS PostgreSQL, ElastiCache Redis
+│   ├── ecs/          # ECS Fargate, ALB
+│   ├── s3/           # S3 buckets, CloudFront
+│   └── route53/      # Route53, ACM certificates
+├── provider.tf
 ├── variables.tf
-├── outputs.tf
-├── providers.tf
-└── backend.tf
+└── README.md
 ```
 
-## Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - Terraform >= 1.0
 - AWS CLI configured
-- Docker (for local development)
+- Existing Route53 hosted zone for `revueexchange.com`
 
-### Development
+## Setup
 
-```bash
-# Plan dev environment
-cd terraform
-terraform plan -var-file=environments/dev/dev.tfvars
-
-# Apply dev environment
-terraform apply -var-file=environments/dev/dev.tfvars
-```
-
-### Production
+### 1. Create S3 bucket for Terraform state
 
 ```bash
-# Plan prod environment
-terraform plan -var-file=environments/prod/prod.tfvars
-
-# Apply prod environment (with approval)
-terraform apply -var-file=environments/prod/prod.tfvars
+aws s3 mb s3://revueexchange-terraform-state --region us-east-1
+aws s3api put-bucket-encryption --bucket revueexchange-terraform-state --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 ```
 
-## Modules
+### 2. Create DynamoDB table for state locking
 
-### Core
-VPC networking, IAM roles, Cognito User Pool, KMS encryption, Secrets Manager.
+```bash
+aws dynamodb create-table \
+  --table-name revueexchange-terraform-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --region us-east-1
+```
 
-### Database
-Aurora PostgreSQL (Serverless), ElastiCache Redis, DynamoDB tables (badges, leaderboard, streaks, rate-limits).
+### 3. Deploy
 
-### Storage
-S3 buckets for uploads, exports, and backups.
+**Dev Environment:**
+```bash
+cd terraform/env/dev
+terraform init
+terraform plan
+terraform apply
+```
 
-### Events
-EventBridge event bus, SQS queues (email, webhooks, exports).
+**Prod Environment:**
+```bash
+cd terraform/env/prod
+terraform init
+terraform plan
+terraform apply
+```
 
-### API
-ECS Fargate cluster, Application Load Balancer, API Gateway (HTTP API).
+## Resource Naming
 
-### CDN
-CloudFront distribution, S3 bucket for frontend hosting.
+All resources follow the pattern: `{project}-{environment}-{resource}`
+
+Examples:
+- S3: `revueexchange-dev-uploads`, `revueexchange-prod-frontend`
+- ECS: `revueexchange-dev-cluster`
+- RDS: `revueexchange-dev-rds`
+- Redis: `revueexchange-dev-redis`
+
+## DNS
+
+- Dev UI: `https://dev.revueexchange.com`
+- Dev API: `https://dev-api.revueexchange.com`
+- Prod UI: `https://revueexchange.com`
+- Prod API: `https://api.revueexchange.com`
+
+## Route53
+
+The hosted zone is assumed to exist externally. This Terraform only:
+- Looks up the existing hosted zone
+- Creates ACM certificate
+- Creates DNS records
+
+The hosted zone itself should be created manually in AWS console and survive `terraform destroy`.

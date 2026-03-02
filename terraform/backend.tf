@@ -1,7 +1,1 @@
-terraform {
-  backend "s3" {
-    bucket = "revueexchange-terraform-state"
-    key    = "terraform.tfstate"
-    region = "us-east-1"
-  }
-}
+# Backend configuration is in env/dev/main.tf and env/prod/main.tf
