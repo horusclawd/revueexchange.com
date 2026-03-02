@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Bounties from './pages/Bounties'
 import MyReviews from './pages/MyReviews'
 import Profile from './pages/Profile'
+import Points from './pages/Points'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -59,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="points"
+          element={
+            <ProtectedRoute>
+              <Points />
             </ProtectedRoute>
           }
         />
