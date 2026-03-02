@@ -12,6 +12,7 @@ import (
 type Handler struct {
 	AuthService   *service.AuthService
 	UserService   *service.UserService
+	ProductService *service.ProductService
 	BountyService *service.BountyService
 	PointsService *service.PointsService
 }
@@ -31,16 +32,19 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 
 	// Create handler
 	h := &Handler{
-		AuthService:   services.AuthService,
-		UserService:   services.UserService,
-		BountyService: services.BountyService,
-		PointsService: services.PointsService,
+		AuthService:    services.AuthService,
+		UserService:    services.UserService,
+		ProductService: services.ProductService,
+		BountyService:  services.BountyService,
+		PointsService:  services.PointsService,
 	}
 
 	// Public routes
 	r.Group(func(r chi.Router) {
 		r.Post("/api/v1/auth/register", h.Register)
 		r.Post("/api/v1/auth/login", h.Login)
+		r.Get("/api/v1/products/{id}", h.GetProduct)
+		r.Get("/api/v1/users/{id}/products", h.GetUserProducts)
 	})
 
 	// Protected routes
@@ -48,6 +52,11 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Use(authmware.AuthMiddleware(cfg.JWTSecret))
 		r.Get("/api/v1/auth/me", h.Me)
 		r.Put("/api/v1/users/{id}", h.UpdateUser)
+
+		// Products
+		r.Post("/api/v1/products", h.CreateProduct)
+		r.Put("/api/v1/products/{id}", h.UpdateProduct)
+		r.Delete("/api/v1/products/{id}", h.DeleteProduct)
 
 		// Bounties
 		r.Get("/api/v1/bounties", h.ListBounties)

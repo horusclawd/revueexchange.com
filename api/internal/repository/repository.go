@@ -77,6 +77,65 @@ func (r *Repository) HealthCheck(ctx context.Context) error {
 	return r.db.Ping(ctx)
 }
 
+// Product methods
+func (r *Repository) CreateProduct(ctx context.Context, product *model.Product) error {
+	query := `
+		INSERT INTO products (id, user_id, type, title, description, url, cover_image_url, genre, word_count, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+	_, err := r.db.Exec(ctx, query,
+		product.ID, product.UserID, product.Type, product.Title, product.Description,
+		product.URL, product.CoverImageURL, product.Genre, product.WordCount, product.CreatedAt,
+	)
+	return err
+}
+
+func (r *Repository) GetProductByID(ctx context.Context, id uuid.UUID) (*model.Product, error) {
+	query := `SELECT id, user_id, type, title, description, url, cover_image_url, genre, word_count, created_at FROM products WHERE id = $1`
+	row := r.db.QueryRow(ctx, query, id)
+
+	var product model.Product
+	err := row.Scan(&product.ID, &product.UserID, &product.Type, &product.Title, &product.Description, &product.URL, &product.CoverImageURL, &product.Genre, &product.WordCount, &product.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+func (r *Repository) GetProductsByUserID(ctx context.Context, userID uuid.UUID) ([]model.Product, error) {
+	query := `SELECT id, user_id, type, title, description, url, cover_image_url, genre, word_count, created_at FROM products WHERE user_id = $1 ORDER BY created_at DESC`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []model.Product
+	for rows.Next() {
+		var p model.Product
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Type, &p.Title, &p.Description, &p.URL, &p.CoverImageURL, &p.Genre, &p.WordCount, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+	return products, nil
+}
+
+func (r *Repository) UpdateProduct(ctx context.Context, product *model.Product) error {
+	query := `
+		UPDATE products SET title = $1, description = $2, url = $3, cover_image_url = $4, genre = $5, word_count = $6
+		WHERE id = $7 AND user_id = $8
+	`
+	_, err := r.db.Exec(ctx, query, product.Title, product.Description, product.URL, product.CoverImageURL, product.Genre, product.WordCount, product.ID, product.UserID)
+	return err
+}
+
+func (r *Repository) DeleteProduct(ctx context.Context, id, userID uuid.UUID) error {
+	query := `DELETE FROM products WHERE id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, id, userID)
+	return err
+}
+
 // Placeholder methods for other entities
 func (r *Repository) CreateBounty(ctx context.Context, bounty *model.Bounty) error {
 	query := `

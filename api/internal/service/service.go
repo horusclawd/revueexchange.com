@@ -13,6 +13,7 @@ import (
 type Services struct {
 	UserService    *UserService
 	AuthService   *AuthService
+	ProductService *ProductService
 	BountyService *BountyService
 	PointsService *PointsService
 }
@@ -22,6 +23,7 @@ func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
 	return &Services{
 		UserService:    NewUserService(repo),
 		AuthService:   NewAuthService(repo, cfg),
+		ProductService: NewProductService(repo),
 		BountyService: NewBountyService(repo),
 		PointsService: NewPointsService(repo),
 	}
@@ -106,6 +108,35 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*model
 // GenerateToken generates a JWT token for a user
 func (s *AuthService) GenerateToken(userID uuid.UUID) (string, error) {
 	return GenerateToken(userID, s.cfg.JWTSecret)
+}
+
+// ProductService handles product operations
+type ProductService struct {
+	repo *repository.Repository
+}
+
+func NewProductService(repo *repository.Repository) *ProductService {
+	return &ProductService{repo: repo}
+}
+
+func (s *ProductService) CreateProduct(ctx context.Context, product *model.Product) error {
+	return s.repo.CreateProduct(ctx, product)
+}
+
+func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (*model.Product, error) {
+	return s.repo.GetProductByID(ctx, id)
+}
+
+func (s *ProductService) GetProductsByUserID(ctx context.Context, userID uuid.UUID) ([]model.Product, error) {
+	return s.repo.GetProductsByUserID(ctx, userID)
+}
+
+func (s *ProductService) UpdateProduct(ctx context.Context, product *model.Product) error {
+	return s.repo.UpdateProduct(ctx, product)
+}
+
+func (s *ProductService) DeleteProduct(ctx context.Context, id, userID uuid.UUID) error {
+	return s.repo.DeleteProduct(ctx, id, userID)
 }
 
 // BountyService handles bounty operations

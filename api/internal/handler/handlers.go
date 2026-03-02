@@ -255,3 +255,186 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Data: txs})
 }
+
+// CreateProduct handles POST /api/v1/products
+func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	var req struct {
+		Type          string  `json:"type"`
+		Title         string  `json:"title"`
+		Description   *string `json:"description"`
+		URL           *string `json:"url"`
+		CoverImageURL *string `json:"cover_image_url"`
+		Genre         *string `json:"genre"`
+		WordCount     *int    `json:"word_count"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Type == "" || req.Title == "" {
+		http.Error(w, "type and title are required", http.StatusBadRequest)
+		return
+	}
+
+	product := &model.Product{
+		ID:            uuid.New(),
+		UserID:        userID,
+		Type:          req.Type,
+		Title:         req.Title,
+		Description:   req.Description,
+		URL:           req.URL,
+		CoverImageURL: req.CoverImageURL,
+		Genre:         req.Genre,
+		WordCount:     req.WordCount,
+	}
+
+	if err := h.ProductService.CreateProduct(r.Context(), product); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(Response{Data: product})
+}
+
+// GetProduct handles GET /api/v1/products/{id}
+func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.ProductService.GetProductByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: product})
+}
+
+// GetUserProducts handles GET /api/v1/users/{id}/products
+func (h *Handler) GetUserProducts(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	products, err := h.ProductService.GetProductsByUserID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: products})
+}
+
+// UpdateProduct handles PUT /api/v1/products/{id}
+func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	// Get existing product
+	product, err := h.ProductService.GetProductByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership
+	if product.UserID != userID {
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Title         *string `json:"title"`
+		Description   *string `json:"description"`
+		URL           *string `json:"url"`
+		CoverImageURL *string `json:"cover_image_url"`
+		Genre         *string `json:"genre"`
+		WordCount     *int    `json:"word_count"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Title != nil {
+		product.Title = *req.Title
+	}
+	if req.Description != nil {
+		product.Description = req.Description
+	}
+	if req.URL != nil {
+		product.URL = req.URL
+	}
+	if req.CoverImageURL != nil {
+		product.CoverImageURL = req.CoverImageURL
+	}
+	if req.Genre != nil {
+		product.Genre = req.Genre
+	}
+	if req.WordCount != nil {
+		product.WordCount = req.WordCount
+	}
+
+	if err := h.ProductService.UpdateProduct(r.Context(), product); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: product})
+}
+
+// DeleteProduct handles DELETE /api/v1/products/{id}
+func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	// Get existing product
+	product, err := h.ProductService.GetProductByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership
+	if product.UserID != userID {
+		http.Error(w, "unauthorized", http.StatusForbidden)
+		return
+	}
+
+	if err := h.ProductService.DeleteProduct(r.Context(), id, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Message: "Product deleted"})
+}
