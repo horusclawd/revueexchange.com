@@ -9,6 +9,7 @@ import Bounties from './pages/Bounties'
 import MyReviews from './pages/MyReviews'
 import Profile from './pages/Profile'
 import Points from './pages/Points'
+import PurchasePoints from './pages/PurchasePoints'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -68,6 +69,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Points />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="purchase-points"
+          element={
+            <ProtectedRoute>
+              <PurchasePoints />
             </ProtectedRoute>
           }
         />

@@ -35,6 +35,15 @@ export default function Layout() {
                   </svg>
                   <span className="font-semibold">{user.points}</span>
                 </Link>
+                <Link
+                  to="/purchase-points"
+                  className="flex items-center gap-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-1.5 rounded-full hover:from-violet-600 hover:to-purple-700 transition-all text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Buy
+                </Link>
                 <button
                   onClick={logout}
                   className="text-gray-600 hover:text-gray-900"

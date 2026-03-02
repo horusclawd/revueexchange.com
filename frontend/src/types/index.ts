@@ -66,6 +66,18 @@ export interface PointTransaction {
   created_at: string
 }
 
+export interface Payment {
+  id: string
+  user_id: string
+  stripe_session_id?: string
+  stripe_payment_intent?: string
+  amount_cents: number
+  currency: string
+  type?: string
+  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'expired'
+  created_at: string
+}
+
 export interface ApiResponse<T> {
   data?: T
   error?: string

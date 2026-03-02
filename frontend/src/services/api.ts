@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, Bounty, PointTransaction } from '../types'
+import type { User, Bounty, PointTransaction, Payment } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -98,5 +98,16 @@ export const api = {
   async getTransactions(params?: { limit?: number; offset?: number }) {
     const { data } = await client.get<{ data: PointTransaction[]; meta: { total: number } }>('/v1/points/transactions', { params })
     return { transactions: data.data, meta: data.meta }
+  },
+
+  // Payments
+  async createCheckout(amountCents: number) {
+    const { data } = await client.post<{ data: { checkout_url: string; points_award: number; payment_id: string } }>('/v1/payments/checkout', { amount_cents: amountCents })
+    return data.data
+  },
+
+  async getPaymentHistory() {
+    const { data } = await client.get<{ data: Payment[] }>('/v1/payments/history')
+    return data.data
   },
 }
