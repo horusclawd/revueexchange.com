@@ -1,6 +1,6 @@
 # RevUExchange Makefile
 
-.PHONY: help local-start local-stop local-infra-deploy local-api local-ui test build
+.PHONY: help local-start local-stop local-api local-ui test build
 
 # Help
 help:
@@ -9,7 +9,6 @@ help:
 	@echo "Local Development:"
 	@echo "  make local-start         Start LocalStack and local services"
 	@echo "  make local-stop         Stop local services"
-	@echo "  make local-infra-deploy  Deploy infrastructure to LocalStack"
 	@echo ""
 	@echo "Development Servers:"
 	@echo "  make local-api          Start Go API locally"
@@ -28,10 +27,6 @@ local-start:
 local-stop:
 	@chmod +x scripts/stop-localstack.sh
 	./scripts/stop-localstack.sh
-
-local-infra-deploy:
-	@chmod +x scripts/deploy-localstack.sh
-	./scripts/deploy-localstack.sh
 
 # Development Servers
 local-api:

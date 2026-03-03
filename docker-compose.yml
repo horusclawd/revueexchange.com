@@ -3,7 +3,7 @@ version: '3.8'
 services:
   localstack:
     container_name: revueexchange-localstack
-    image: localstack/localstack:3.0
+    image: localstack/localstack:4.0
     ports:
       - "4566:4566"
     environment:
@@ -16,7 +16,6 @@ services:
       - ENABLE_CONFIG_VALIDATIONS=1
       - START_WEB=0
     volumes:
-      - "./.localstack:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
