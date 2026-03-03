@@ -139,8 +139,8 @@ export default function MyReviews() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Review Content
-                    <span className={`ml-2 text-sm ${wordCount >= 100 ? 'text-green-600' : 'text-slate-400'}`}>
-                      ({wordCount} words {wordCount < 100 && '- minimum 100 required'})
+                    <span className={`ml-2 text-sm ${wordCount >= 10 ? 'text-green-600' : 'text-slate-400'}`}>
+                      ({wordCount} words {wordCount < 10 && '- minimum 10 required'})
                     </span>
                   </label>
                   <textarea
@@ -169,7 +169,7 @@ export default function MyReviews() {
                     </button>
                     <button
                       onClick={saveDraft}
-                      disabled={wordCount < 100 || rating === 0 || createMutation.isPending}
+                      disabled={wordCount < 10 || rating === 0 || createMutation.isPending}
                       className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <Send className="w-4 h-4" />

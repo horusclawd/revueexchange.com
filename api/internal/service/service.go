@@ -272,9 +272,9 @@ func (s *ReviewService) SubmitReview(ctx context.Context, reviewID, reviewerID u
 		return nil, &ServiceError{Message: "review already submitted"}
 	}
 
-	// Validate word count (minimum 100 words)
-	if review.WordCount != nil && *review.WordCount < 100 {
-		return nil, &ServiceError{Message: "review must be at least 100 words"}
+	// Validate word count (minimum 10 words)
+	if review.WordCount != nil && *review.WordCount < 10 {
+		return nil, &ServiceError{Message: "review must be at least 10 words"}
 	}
 
 	// Validate rating (1-5)

@@ -217,7 +217,7 @@ export default function Points() {
           <div>
             <h3 className="font-semibold text-teal-900 mb-1">How to Earn More Points</h3>
             <p className="text-teal-700 text-sm">
-              Complete quality reviews to earn points. Reviews must be at least 100 words to qualify.
+              Complete quality reviews to earn points. Reviews must be at least 10 words to qualify.
               The better your review, the more likely authors are to leave you positive feedback!
             </p>
           </div>
