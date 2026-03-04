@@ -95,6 +95,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 
 		// Comments
 		r.Post("/api/v1/comments", h.AddComment)
+		r.Get("/api/v1/comments", h.GetComments)
 		r.Delete("/api/v1/comments/{id}", h.DeleteComment)
 	})
 

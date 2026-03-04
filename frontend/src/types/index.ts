@@ -78,6 +78,26 @@ export interface Payment {
   created_at: string
 }
 
+export interface Comment {
+  id: string
+  user_id: string
+  review_id: string
+  parent_id?: string
+  content: string
+  created_at: string
+  user?: User
+}
+
+export interface Activity {
+  id: string
+  user_id: string
+  type: 'review_submitted' | 'bounty_created' | 'follow' | 'comment' | 'points_earned' | 'bounty_completed'
+  reference_type?: string
+  reference_id?: string
+  created_at: string
+  user?: User
+}
+
 export interface ApiResponse<T> {
   data?: T
   error?: string

@@ -922,3 +922,27 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Message: "Comment deleted"})
 }
+
+// GetComments handles GET /api/v1/comments
+func (h *Handler) GetComments(w http.ResponseWriter, r *http.Request) {
+	reviewIDStr := r.URL.Query().Get("review_id")
+	if reviewIDStr == "" {
+		http.Error(w, "review_id is required", http.StatusBadRequest)
+		return
+	}
+
+	reviewID, err := uuid.Parse(reviewIDStr)
+	if err != nil {
+		http.Error(w, "invalid review_id", http.StatusBadRequest)
+		return
+	}
+
+	comments, err := h.SocialService.GetComments(r.Context(), reviewID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: comments})
+}

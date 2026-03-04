@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, Bounty, PointTransaction, Payment } from '../types'
+import type { User, Bounty, PointTransaction, Payment, Comment, Activity } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -108,6 +108,58 @@ export const api = {
 
   async getPaymentHistory() {
     const { data } = await client.get<{ data: Payment[] }>('/v1/payments/history')
+    return data.data
+  },
+
+  // Social - Follow
+  async followUser(userId: string) {
+    const { data } = await client.post<{ message: string }>(`/v1/social/follow/${userId}`)
+    return data
+  },
+
+  async unfollowUser(userId: string) {
+    const { data } = await client.delete<{ message: string }>(`/v1/social/follow/${userId}`)
+    return data
+  },
+
+  async getFollowers(userId: string) {
+    const { data } = await client.get<{ data: User[] }>(`/v1/social/followers/${userId}`)
+    return data.data
+  },
+
+  async getFollowing(userId: string) {
+    const { data } = await client.get<{ data: User[] }>(`/v1/social/following/${userId}`)
+    return data.data
+  },
+
+  async isFollowing(userId: string) {
+    const { data } = await client.get<{ data: { following: boolean } }>(`/v1/social/following/${userId}`)
+    return data.data.following
+  },
+
+  // Social - Activity Feed
+  async getActivityFeed() {
+    const { data } = await client.get<{ data: Activity[] }>('/v1/social/feed')
+    return data.data
+  },
+
+  // Social - Comments
+  async addComment(reviewId: string, content: string, parentId?: string) {
+    const { data } = await client.post<{ data: Comment }>('/v1/comments', {
+      review_id: reviewId,
+      content,
+      parent_id: parentId,
+    })
+    return data.data
+  },
+
+  async deleteComment(commentId: string) {
+    const { data } = await client.delete<{ message: string }>(`/v1/comments/${commentId}`)
+    return data
+  },
+
+  async getComments(reviewId: string) {
+    const { data } = await client.get<{ data: Comment[] }>(`/v1/comments?review_id=${reviewId}`)
     return data.data
   },
 }

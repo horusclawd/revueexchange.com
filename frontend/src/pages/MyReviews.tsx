@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../services/api'
-import { Star, Clock, MessageSquare, ThumbsUp, Eye, Edit2, Send, BookOpen, ArrowRight } from 'lucide-react'
+import { Star, Clock, MessageSquare, ThumbsUp, Eye, Edit2, Send, BookOpen, ArrowRight, X } from 'lucide-react'
 
 type ReviewStatus = 'draft' | 'submitted' | 'published'
 
@@ -34,6 +34,8 @@ export default function MyReviews() {
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null)
+  const [newComment, setNewComment] = useState('')
   const queryClient = useQueryClient()
 
   // Mock data - in real app would fetch from API
@@ -74,6 +76,37 @@ export default function MyReviews() {
       queryClient.invalidateQueries({ queryKey: ['reviews'] })
     },
   })
+
+  // Comments query
+  const { data: comments } = useQuery({
+    queryKey: ['comments', showCommentsFor],
+    queryFn: () => api.getComments(showCommentsFor!),
+    enabled: !!showCommentsFor,
+  })
+
+  // Add comment mutation
+  const addCommentMutation = useMutation({
+    mutationFn: ({ reviewId, content }: { reviewId: string; content: string }) =>
+      api.addComment(reviewId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', showCommentsFor] })
+      setNewComment('')
+    },
+  })
+
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => api.deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', showCommentsFor] })
+    },
+  })
+
+  const handleAddComment = (reviewId: string) => {
+    if (newComment.trim()) {
+      addCommentMutation.mutate({ reviewId, content: newComment })
+    }
+  }
 
   const claimedBounties = bounties?.bounties || []
 
@@ -270,6 +303,71 @@ export default function MyReviews() {
                     >
                       {submitMutation.isPending ? 'Submitting...' : 'Submit for Review'}
                     </button>
+                  )}
+
+                  {/* Comments Section */}
+                  {review.status !== 'draft' && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <button
+                        onClick={() => setShowCommentsFor(showCommentsFor === review.id ? null : review.id)}
+                        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        {showCommentsFor === review.id ? 'Hide comments' : 'View comments'}
+                      </button>
+
+                      {showCommentsFor === review.id && (
+                        <div className="mt-4 space-y-4">
+                          {/* Add comment form */}
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder="Add a comment..."
+                              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                              onKeyDown={(e) => e.key === 'Enter' && handleAddComment(review.id)}
+                            />
+                            <button
+                              onClick={() => handleAddComment(review.id)}
+                              disabled={!newComment.trim() || addCommentMutation.isPending}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {/* Comments list */}
+                          {comments && comments.length > 0 ? (
+                            <div className="space-y-3">
+                              {comments.map((comment) => (
+                                <div key={comment.id} className="bg-slate-50 rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-medium text-sm text-slate-700">
+                                      {comment.user?.display_name || comment.user?.username || 'Someone'}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-slate-400">
+                                        {new Date(comment.created_at).toLocaleDateString()}
+                                      </span>
+                                      <button
+                                        onClick={() => deleteCommentMutation.mutate(comment.id)}
+                                        className="text-slate-400 hover:text-red-500"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-slate-600">{comment.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400 text-center py-2">No comments yet</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )
