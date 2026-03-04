@@ -29,6 +29,9 @@ export default function Layout() {
                 <Link to="/leaderboard" className="text-gray-600 hover:text-gray-900">
                   Leaderboard
                 </Link>
+                <Link to="/analytics" className="text-gray-600 hover:text-gray-900">
+                  Analytics
+                </Link>
                 <Link to="/profile" className="text-gray-600 hover:text-gray-900">
                   Profile
                 </Link>

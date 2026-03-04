@@ -190,4 +190,30 @@ export const api = {
     const { data } = await client.post<{ data: Streak; message: string }>('/v1/gamification/streak/update')
     return data.data
   },
+
+  // Analytics
+  async getAnalyticsOverview() {
+    const { data } = await client.get<{ data: any }>('/v1/analytics/overview')
+    return data.data
+  },
+
+  async getBountyMetrics() {
+    const { data } = await client.get<{ data: any[] }>('/v1/analytics/bounties')
+    return data.data
+  },
+
+  async getReviewMetrics() {
+    const { data } = await client.get<{ data: any[] }>('/v1/analytics/reviews')
+    return data.data
+  },
+
+  async getRevenueStats() {
+    const { data } = await client.get<{ data: any }>('/v1/analytics/revenue')
+    return data.data
+  },
+
+  async getUserActivity(days = 30) {
+    const { data } = await client.get<{ data: any[] }>('/v1/analytics/activity', { params: { days } })
+    return data.data
+  },
 }
