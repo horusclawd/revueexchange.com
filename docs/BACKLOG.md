@@ -24,15 +24,15 @@ Features and bug fixes to implement. Will be organized into future sprints.
 ## High Priority
 
 ### Social Features
-- [ ] Follow/Unfollow buttons not connected to API
-- [ ] Comments UI on reviews - not implemented
+- [x] Follow/Unfollow buttons - ALREADY CONNECTED TO API (was done)
+- [x] Comments UI on reviews - Already in MyReviews (inline)
 
 ### Products
-- [ ] Products page UI - not implemented
+- [x] Products page UI - IMPLEMENTED (Products.tsx + route)
 
 ### Gamification
-- [ ] Badges display - not connected to API
-- [ ] Streak indicator - not connected to API
+- [x] Badges display - ALREADY CONNECTED TO API (was done)
+- [x] Streak indicator - IMPLEMENTED (added to profile)
 
 ---
 
