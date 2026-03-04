@@ -15,9 +15,29 @@ import (
 
 // Response is a standard API response
 type Response struct {
-	Data    interface{} `json:"data,omitempty"`
-	Error   string     `json:"error,omitempty"`
-	Message string     `json:"message,omitempty"`
+	Data      interface{} `json:"data,omitempty"`
+	Error    string     `json:"error,omitempty"`
+	Message  string     `json:"message,omitempty"`
+	Code     string     `json:"code,omitempty"` // machine-readable error code
+}
+
+// ErrorResponse sends a structured error response
+func ErrorResponse(w http.ResponseWriter, code int, message, errCode string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(Response{
+		Error: message,
+		Code:  errCode,
+	})
+}
+
+// SuccessResponse sends a structured success response
+func SuccessResponse(w http.ResponseWriter, data interface{}, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{
+		Data:    data,
+		Message: message,
+	})
 }
 
 // TokenResponse represents an auth response with token
