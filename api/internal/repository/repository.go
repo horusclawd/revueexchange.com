@@ -584,6 +584,134 @@ func (r *Repository) GetActivityFeed(ctx context.Context, userID uuid.UUID, limi
 	return activities, nil
 }
 
+// Analytics queries
+
+type PointsStats struct {
+	Awarded int
+	Spent   int
+}
+
+func (r *Repository) GetTotalUsers(ctx context.Context) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+func (r *Repository) GetTotalBounties(ctx context.Context) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM bounties").Scan(&count)
+	return count, err
+}
+
+func (r *Repository) GetTotalReviews(ctx context.Context) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM reviews").Scan(&count)
+	return count, err
+}
+
+func (r *Repository) GetTotalPointsStats(ctx context.Context) (*PointsStats, error) {
+	stats := &PointsStats{}
+	err := r.db.QueryRow(ctx, "SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0), COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) FROM point_transactions").Scan(&stats.Awarded, &stats.Spent)
+	return stats, err
+}
+
+func (r *Repository) GetBountyMetrics(ctx context.Context) ([]model.BountyMetrics, error) {
+	query := `
+		SELECT status, COUNT(*), COALESCE(SUM(bounty_points), 0)
+		FROM bounties
+		GROUP BY status
+	`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []model.BountyMetrics
+	for rows.Next() {
+		var m model.BountyMetrics
+		if err := rows.Scan(&m.Status, &m.Count, &m.TotalBounties); err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, m)
+	}
+	return metrics, nil
+}
+
+func (r *Repository) GetReviewMetrics(ctx context.Context) ([]model.ReviewMetrics, error) {
+	query := `
+		SELECT status, COUNT(*), COALESCE(AVG(rating), 0), COALESCE(SUM(COALESCE(word_count, 0)), 0)
+		FROM reviews
+		GROUP BY status
+	`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []model.ReviewMetrics
+	for rows.Next() {
+		var m model.ReviewMetrics
+		if err := rows.Scan(&m.Status, &m.Count, &m.AvgRating, &m.TotalWords); err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, m)
+	}
+	return metrics, nil
+}
+
+func (r *Repository) GetRevenueStats(ctx context.Context) (*model.RevenueStats, error) {
+	stats := &model.RevenueStats{}
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount_cents), 0),
+			COUNT(CASE WHEN status = 'completed' THEN 1 END),
+			COUNT(CASE WHEN status = 'pending' THEN 1 END)
+		FROM payments
+	`).Scan(&stats.TotalRevenue, &stats.CompletedPayments, &stats.PendingPayments)
+	return stats, err
+}
+
+func (r *Repository) GetUserActivity(ctx context.Context, days int) ([]model.UserActivity, error) {
+	query := `
+		WITH dates AS (
+			SELECT generate_series(
+				CURRENT_DATE - INTERVAL '1 day' * $1,
+				CURRENT_DATE,
+				'1 day'::interval
+			) AS date
+		)
+		SELECT
+			d.date::text,
+			(SELECT COUNT(*) FROM users WHERE created_at::date = d.date) AS new_users,
+			(SELECT COUNT(*) FROM reviews WHERE created_at::date = d.date) AS new_reviews,
+			(SELECT COUNT(*) FROM bounties WHERE created_at::date = d.date) AS new_bounties
+		FROM dates d
+		ORDER BY d.date
+	`
+	rows, err := r.db.Query(ctx, query, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []model.UserActivity
+	for rows.Next() {
+		var a model.UserActivity
+		if err := rows.Scan(&a.Date, &a.NewUsers, &a.NewReviews, &a.NewBounties); err != nil {
+			return nil, err
+		}
+		activities = append(activities, a)
+	}
+	return activities, nil
+}
+
+func (r *Repository) GetUserBountyCount(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM bounties WHERE user_id = $1", userID).Scan(&count)
+	return count, err
+}
+
 func (r *Repository) Close() {
 	r.db.Close()
 }

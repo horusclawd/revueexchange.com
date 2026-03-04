@@ -1044,3 +1044,82 @@ func (h *Handler) UpdateStreak(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Data: streak, Message: "Streak updated"})
 }
+
+// GetAnalyticsOverview handles GET /api/v1/analytics/overview
+func (h *Handler) GetAnalyticsOverview(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.AnalyticsService.GetOverviewStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: stats})
+}
+
+// GetBountyMetrics handles GET /api/v1/analytics/bounties
+func (h *Handler) GetBountyMetrics(w http.ResponseWriter, r *http.Request) {
+	metrics, err := h.AnalyticsService.GetBountyMetrics(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: metrics})
+}
+
+// GetReviewMetrics handles GET /api/v1/analytics/reviews
+func (h *Handler) GetReviewMetrics(w http.ResponseWriter, r *http.Request) {
+	metrics, err := h.AnalyticsService.GetReviewMetrics(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: metrics})
+}
+
+// GetRevenueStats handles GET /api/v1/analytics/revenue
+func (h *Handler) GetRevenueStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.AnalyticsService.GetRevenueStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: stats})
+}
+
+// GetUserActivity handles GET /api/v1/analytics/activity
+func (h *Handler) GetUserActivity(w http.ResponseWriter, r *http.Request) {
+	days := 30
+	if d := r.URL.Query().Get("days"); d != "" {
+		fmt.Sscanf(d, "%d", &days)
+	}
+
+	activity, err := h.AnalyticsService.GetUserActivity(r.Context(), days)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: activity})
+}
+
+// GetUserAnalytics handles GET /api/v1/analytics/user
+func (h *Handler) GetUserAnalytics(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	analytics, err := h.AnalyticsService.GetUserAnalytics(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: analytics})
+}

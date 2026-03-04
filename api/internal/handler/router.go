@@ -20,6 +20,7 @@ type Handler struct {
 	SocialService     *service.SocialService
 	BadgeService      *service.BadgeService
 	GamificationService *service.GamificationService
+	AnalyticsService  *service.AnalyticsService
 }
 
 // SetupRouter sets up the HTTP router
@@ -47,6 +48,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		SocialService:       services.SocialService,
 		BadgeService:        services.BadgeService,
 		GamificationService:  services.GamificationService,
+		AnalyticsService:    services.AnalyticsService,
 	}
 
 	// Public routes
@@ -110,6 +112,14 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Get("/api/v1/gamification/leaderboard", h.GetLeaderboard)
 		r.Get("/api/v1/gamification/streak", h.GetStreak)
 		r.Post("/api/v1/gamification/streak/update", h.UpdateStreak)
+
+		// Analytics
+		r.Get("/api/v1/analytics/overview", h.GetAnalyticsOverview)
+		r.Get("/api/v1/analytics/bounties", h.GetBountyMetrics)
+		r.Get("/api/v1/analytics/reviews", h.GetReviewMetrics)
+		r.Get("/api/v1/analytics/revenue", h.GetRevenueStats)
+		r.Get("/api/v1/analytics/activity", h.GetUserActivity)
+		r.Get("/api/v1/analytics/user", h.GetUserAnalytics)
 	})
 
 	// Webhook (not protected by auth)

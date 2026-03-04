@@ -23,6 +23,7 @@ type Services struct {
 	SocialService    *SocialService
 	BadgeService     *BadgeService
 	GamificationService *GamificationService
+	AnalyticsService *AnalyticsService
 }
 
 // NewServices creates all services
@@ -47,6 +48,9 @@ func NewServices(repo *repository.Repository, dynamoDB *dynamodb.Client, cfg *co
 		gamificationRepo := repository.NewGamificationRepository(dynamoDB)
 		services.GamificationService = NewGamificationService(repo, gamificationRepo)
 	}
+
+	// Always initialize analytics service (uses PostgreSQL)
+	services.AnalyticsService = NewAnalyticsService(repo)
 
 	return services
 }
