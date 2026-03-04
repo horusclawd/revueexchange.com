@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { api } from '../services/api'
 import { Search, Filter, Plus, Star, Clock, BookOpen, Headphones, FileText, Sparkles, X } from 'lucide-react'
 
@@ -158,9 +159,10 @@ export default function Bounties() {
               const typeStyle = typeColors[productType]
 
               return (
-                <div
+                <Link
+                  to={`/bounties/${bounty.id}`}
                   key={bounty.id}
-                  className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1"
+                  className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 block"
                 >
                   {/* Card Header */}
                   <div className="p-6 pb-4">
@@ -212,7 +214,7 @@ export default function Bounties() {
                       </button>
                     )}
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

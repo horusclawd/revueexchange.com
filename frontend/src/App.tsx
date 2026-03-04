@@ -13,6 +13,7 @@ import PurchasePoints from './pages/PurchasePoints'
 import Feed from './pages/Feed'
 import Leaderboard from './pages/Leaderboard'
 import Analytics from './pages/Analytics'
+import BountyDetail from './pages/BountyDetail'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -48,6 +49,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Bounties />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bounties/:id"
+          element={
+            <ProtectedRoute>
+              <BountyDetail />
             </ProtectedRoute>
           }
         />
