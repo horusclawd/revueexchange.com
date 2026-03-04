@@ -6,9 +6,10 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
-// Start MSW in development mode for mock API
+// Start MSW in development mode for mock API (disabled by default - set VITE_USE_MOCK=true to enable)
 async function enableMocking() {
-  if (import.meta.env.DEV) {
+  const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+  if (import.meta.env.DEV && useMock) {
     const { worker } = await import('./mocks/browser')
     return worker.start({
       onUnhandledRequest: 'bypass',

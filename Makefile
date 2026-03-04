@@ -36,7 +36,7 @@ local-stop:
 
 # Development Servers
 local-api:
-	cd api && go run ./cmd/server/main.go
+	cd api && go run ./cmd/api/main.go
 
 local-ui:
 	cd frontend && npm run dev
@@ -56,7 +56,7 @@ lint:
 
 # Building
 build:
-	cd api && go build -o bin/server ./cmd/server
+	cd api && go build -o bin/server ./cmd/api
 	cd frontend && npm run build
 
 build-docker:
