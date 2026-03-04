@@ -712,6 +712,41 @@ func (r *Repository) GetUserBountyCount(ctx context.Context, userID uuid.UUID) (
 	return count, err
 }
 
+// Fraud detection methods
+
+func (r *Repository) GetRecentReviewCount(ctx context.Context, userID uuid.UUID, hours int) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM reviews
+		WHERE reviewer_id = $1
+		AND created_at > NOW() - INTERVAL '1 hour' * $2
+	`, userID, hours).Scan(&count)
+	return count, err
+}
+
+func (r *Repository) FlagReviewForVerification(ctx context.Context, reviewID, amazonLink string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE reviews SET amazon_review_url = $1
+		WHERE id = $2
+	`, amazonLink, reviewID)
+	return err
+}
+
+func (r *Repository) GetReviewVerification(ctx context.Context, reviewID string) (*model.ReviewVerification, error) {
+	var v model.ReviewVerification
+	err := r.db.QueryRow(ctx, `
+		SELECT id, COALESCE(amazon_review_url, ''), verified_purchase
+		FROM reviews WHERE id = $1
+	`, reviewID).Scan(&v.ReviewID, &v.AmazonLink, &v.VerifiedPurchase)
+	if err != nil {
+		return nil, err
+	}
+	if v.AmazonLink != "" {
+		v.Status = "pending"
+	}
+	return &v, nil
+}
+
 func (r *Repository) Close() {
 	r.db.Close()
 }
