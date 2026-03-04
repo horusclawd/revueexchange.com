@@ -18,6 +18,7 @@ type Handler struct {
 	PointsService   *service.PointsService
 	PaymentService  *service.PaymentService
 	SocialService   *service.SocialService
+	BadgeService    *service.BadgeService
 }
 
 // SetupRouter sets up the HTTP router
@@ -43,6 +44,7 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		PointsService:  services.PointsService,
 		PaymentService: services.PaymentService,
 		SocialService:  services.SocialService,
+		BadgeService:   services.BadgeService,
 	}
 
 	// Public routes
@@ -97,6 +99,10 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		r.Post("/api/v1/comments", h.AddComment)
 		r.Get("/api/v1/comments", h.GetComments)
 		r.Delete("/api/v1/comments/{id}", h.DeleteComment)
+
+		// Badges
+		r.Get("/api/v1/badges", h.GetUserBadges)
+		r.Post("/api/v1/badges/check", h.CheckAndAwardBadges)
 	})
 
 	// Webhook (not protected by auth)

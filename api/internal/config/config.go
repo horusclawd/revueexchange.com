@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/revueexchange/api/internal/repository"
@@ -91,6 +95,38 @@ func InitDB(cfg *Config) (*repository.Repository, error) {
 	}
 
 	return repository.NewRepository(pool), nil
+}
+
+// InitDynamoDB initializes DynamoDB client
+func InitDynamoDB(cfg *Config) (*dynamodb.Client, error) {
+	var awsCfg aws.Config
+	var err error
+
+	if cfg.AWSEndpoint != "" {
+		// LocalStack or custom endpoint
+		awsCfg, err = config.LoadDefaultConfig(context.Background(),
+			config.WithRegion(cfg.AWSRegion),
+			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "")),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		}
+	} else {
+		awsCfg, err = config.LoadDefaultConfig(context.Background(),
+			config.WithRegion(cfg.AWSRegion),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		}
+	}
+
+	client := dynamodb.NewFromConfig(awsCfg, func(o *dynamodb.Options) {
+		if cfg.AWSEndpoint != "" {
+			o.BaseEndpoint = aws.String(cfg.AWSEndpoint)
+		}
+	})
+
+	return client, nil
 }
 
 func getEnv(key, defaultValue string) string {

@@ -946,3 +946,41 @@ func (h *Handler) GetComments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Data: comments})
 }
+
+// GetUserBadges handles GET /api/v1/badges
+func (h *Handler) GetUserBadges(w http.ResponseWriter, r *http.Request) {
+	if h.BadgeService == nil {
+		http.Error(w, "badge service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	badges, err := h.BadgeService.GetUserBadges(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: badges})
+}
+
+// CheckAndAwardBadges handles POST /api/v1/badges/check
+func (h *Handler) CheckAndAwardBadges(w http.ResponseWriter, r *http.Request) {
+	if h.BadgeService == nil {
+		http.Error(w, "badge service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	badges, err := h.BadgeService.CheckAndAwardBadges(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: badges, Message: "Badge check complete"})
+}

@@ -200,6 +200,13 @@ func (r *Repository) GetReviewsByReviewer(ctx context.Context, reviewerID uuid.U
 	return reviews, nil
 }
 
+func (r *Repository) GetReviewCount(ctx context.Context, reviewerID uuid.UUID) (int, error) {
+	query := `SELECT COUNT(*) FROM reviews WHERE reviewer_id = $1 AND status = 'published'`
+	var count int
+	err := r.db.QueryRow(ctx, query, reviewerID).Scan(&count)
+	return count, err
+}
+
 func (r *Repository) UpdateReview(ctx context.Context, review *model.Review) error {
 	query := `
 		UPDATE reviews SET rating = $1, title = $2, content = $3, word_count = $4, status = $5, amazon_review_url = $6, updated_at = $7

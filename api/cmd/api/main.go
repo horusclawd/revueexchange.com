@@ -30,8 +30,15 @@ func main() {
 	}
 	defer repo.Close()
 
+	// Initialize DynamoDB client (for badges)
+	dynamoDB, err := config.InitDynamoDB(cfg)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize DynamoDB - badges will not work")
+		dynamoDB = nil
+	}
+
 	// Initialize services
-	services := service.NewServices(repo, cfg)
+	services := service.NewServices(repo, dynamoDB, cfg)
 
 	// Setup router
 	router := handler.SetupRouter(services, cfg)

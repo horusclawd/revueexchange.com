@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
 	"github.com/revueexchange/api/internal/config"
 	"github.com/revueexchange/api/internal/model"
@@ -20,11 +21,12 @@ type Services struct {
 	PointsService  *PointsService
 	PaymentService *PaymentService
 	SocialService  *SocialService
+	BadgeService   *BadgeService
 }
 
 // NewServices creates all services
-func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
-	return &Services{
+func NewServices(repo *repository.Repository, dynamoDB *dynamodb.Client, cfg *config.Config) *Services {
+	services := &Services{
 		UserService:    NewUserService(repo),
 		AuthService:   NewAuthService(repo, cfg),
 		ProductService: NewProductService(repo),
@@ -34,6 +36,14 @@ func NewServices(repo *repository.Repository, cfg *config.Config) *Services {
 		PaymentService: NewPaymentService(repo, cfg),
 		SocialService:  NewSocialService(repo),
 	}
+
+	// Initialize badge service if DynamoDB is available
+	if dynamoDB != nil {
+		badgeRepo := repository.NewBadgeRepository(dynamoDB)
+		services.BadgeService = NewBadgeService(repo, badgeRepo)
+	}
+
+	return services
 }
 
 // UserService handles user operations
