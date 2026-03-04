@@ -13,15 +13,16 @@ import (
 
 // Services holds all services
 type Services struct {
-	UserService     *UserService
-	AuthService    *AuthService
-	ProductService *ProductService
-	BountyService  *BountyService
-	ReviewService  *ReviewService
-	PointsService  *PointsService
-	PaymentService *PaymentService
-	SocialService  *SocialService
-	BadgeService   *BadgeService
+	UserService       *UserService
+	AuthService      *AuthService
+	ProductService   *ProductService
+	BountyService    *BountyService
+	ReviewService    *ReviewService
+	PointsService    *PointsService
+	PaymentService   *PaymentService
+	SocialService    *SocialService
+	BadgeService     *BadgeService
+	GamificationService *GamificationService
 }
 
 // NewServices creates all services
@@ -41,6 +42,10 @@ func NewServices(repo *repository.Repository, dynamoDB *dynamodb.Client, cfg *co
 	if dynamoDB != nil {
 		badgeRepo := repository.NewBadgeRepository(dynamoDB)
 		services.BadgeService = NewBadgeService(repo, badgeRepo)
+
+		// Initialize gamification service
+		gamificationRepo := repository.NewGamificationRepository(dynamoDB)
+		services.GamificationService = NewGamificationService(repo, gamificationRepo)
 	}
 
 	return services

@@ -984,3 +984,63 @@ func (h *Handler) CheckAndAwardBadges(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Data: badges, Message: "Badge check complete"})
 }
+
+// GetLeaderboard handles GET /api/v1/gamification/leaderboard
+func (h *Handler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	if h.GamificationService == nil {
+		http.Error(w, "gamification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		fmt.Sscanf(l, "%d", &limit)
+	}
+
+	entries, err := h.GamificationService.GetLeaderboard(r.Context(), limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: entries})
+}
+
+// GetStreak handles GET /api/v1/gamification/streak
+func (h *Handler) GetStreak(w http.ResponseWriter, r *http.Request) {
+	if h.GamificationService == nil {
+		http.Error(w, "gamification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	streak, err := h.GamificationService.GetStreak(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: streak})
+}
+
+// UpdateStreak handles POST /api/v1/gamification/streak/update
+func (h *Handler) UpdateStreak(w http.ResponseWriter, r *http.Request) {
+	if h.GamificationService == nil {
+		http.Error(w, "gamification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	streak, err := h.GamificationService.UpdateStreak(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Data: streak, Message: "Streak updated"})
+}

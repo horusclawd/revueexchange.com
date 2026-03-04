@@ -10,15 +10,16 @@ import (
 
 // Handler holds all handlers
 type Handler struct {
-	AuthService     *service.AuthService
-	UserService     *service.UserService
-	ProductService  *service.ProductService
-	BountyService   *service.BountyService
-	ReviewService   *service.ReviewService
-	PointsService   *service.PointsService
-	PaymentService  *service.PaymentService
-	SocialService   *service.SocialService
-	BadgeService    *service.BadgeService
+	AuthService        *service.AuthService
+	UserService        *service.UserService
+	ProductService    *service.ProductService
+	BountyService     *service.BountyService
+	ReviewService     *service.ReviewService
+	PointsService     *service.PointsService
+	PaymentService    *service.PaymentService
+	SocialService     *service.SocialService
+	BadgeService      *service.BadgeService
+	GamificationService *service.GamificationService
 }
 
 // SetupRouter sets up the HTTP router
@@ -36,15 +37,16 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 
 	// Create handler
 	h := &Handler{
-		AuthService:    services.AuthService,
-		UserService:    services.UserService,
-		ProductService: services.ProductService,
-		BountyService:  services.BountyService,
-		ReviewService:  services.ReviewService,
-		PointsService:  services.PointsService,
-		PaymentService: services.PaymentService,
-		SocialService:  services.SocialService,
-		BadgeService:   services.BadgeService,
+		AuthService:          services.AuthService,
+		UserService:          services.UserService,
+		ProductService:      services.ProductService,
+		BountyService:       services.BountyService,
+		ReviewService:       services.ReviewService,
+		PointsService:       services.PointsService,
+		PaymentService:      services.PaymentService,
+		SocialService:       services.SocialService,
+		BadgeService:        services.BadgeService,
+		GamificationService:  services.GamificationService,
 	}
 
 	// Public routes
@@ -103,6 +105,11 @@ func SetupRouter(services *service.Services, cfg *config.Config) *chi.Mux {
 		// Badges
 		r.Get("/api/v1/badges", h.GetUserBadges)
 		r.Post("/api/v1/badges/check", h.CheckAndAwardBadges)
+
+		// Gamification
+		r.Get("/api/v1/gamification/leaderboard", h.GetLeaderboard)
+		r.Get("/api/v1/gamification/streak", h.GetStreak)
+		r.Post("/api/v1/gamification/streak/update", h.UpdateStreak)
 	})
 
 	// Webhook (not protected by auth)

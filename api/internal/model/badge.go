@@ -92,3 +92,23 @@ type UserStats struct {
 	IsTopReviewer   bool
 	MemberSince     time.Time
 }
+
+// LeaderboardEntry represents a user on the leaderboard
+type LeaderboardEntry struct {
+	UserID         string    `json:"user_id"`
+	Username       string    `json:"username"`
+	DisplayName    string    `json:"display_name"`
+	Points         int       `json:"points"`
+	ReviewCount    int       `json:"review_count"`
+	Rank           int       `json:"rank"`
+	LastUpdated    time.Time `json:"last_updated"`
+}
+
+// Streak represents a user's activity streak
+type Streak struct {
+	UserID         string    `json:"user_id"`
+	CurrentStreak  int       `json:"current_streak"`
+	LongestStreak  int       `json:"longest_streak"`
+	LastActivityAt time.Time `json:"last_activity_at"`
+	StreakStartedAt time.Time `json:"streak_started_at"`
+}
