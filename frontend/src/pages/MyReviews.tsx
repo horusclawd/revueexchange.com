@@ -1,15 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../services/api'
-import { Star, Clock, MessageSquare, ThumbsUp, Eye, Edit2, Send, BookOpen, ArrowRight, X } from 'lucide-react'
-
-type ReviewStatus = 'draft' | 'submitted' | 'published'
-
-const statusStyles: Record<ReviewStatus, { bg: string; text: string; label: string }> = {
-  draft: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Draft' },
-  submitted: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Submitted' },
-  published: { bg: 'bg-green-100', text: 'text-green-700', label: 'Published' },
-}
+import { Star, BookOpen, ArrowRight } from 'lucide-react'
 
 function StarRating({ rating, onChange, readonly = false }: { rating: number; onChange?: (r: number) => void; readonly?: boolean }) {
   return (
@@ -34,26 +26,22 @@ export default function MyReviews() {
   const [rating, setRating] = useState(0)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null)
-  const [newComment, setNewComment] = useState('')
   const queryClient = useQueryClient()
 
-  // Mock data - in real app would fetch from API
-  const mockReviews = [
-    { id: '1', bounty_id: 'bounty-1', rating: 4, title: 'Great fantasy world-building', content: 'This was a fantastic read...', status: 'published' as ReviewStatus, word_count: 250, created_at: '2024-01-15T10:00:00Z' },
-    { id: '2', bounty_id: 'bounty-2', rating: 3, title: '', content: '', status: 'draft' as ReviewStatus, word_count: 0, created_at: '2024-01-20T10:00:00Z' },
-  ]
-
-  const { data: bounties } = useQuery({
-    queryKey: ['bounties'],
+  // Fetch claimed bounties (bounties user has claimed to review)
+  const { data: claimedBountiesResult, isLoading: bountiesLoading } = useQuery({
+    queryKey: ['bounties', 'claimed'],
     queryFn: () => api.getBounties({ status: 'claimed' }),
   })
 
+  const claimedBounties = claimedBountiesResult?.bounties || []
+
+  // Create review mutation
   const createMutation = useMutation({
     mutationFn: (data: { bounty_id: string; rating: number; title: string; content: string }) =>
       api.createReview(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['bounties'] })
       setEditingId(null)
       setRating(0)
       setTitle('')
@@ -61,54 +49,13 @@ export default function MyReviews() {
     },
   })
 
-  // const updateMutation = useMutation({
-  //   mutationFn: (data: { id: string; rating: number; title: string; content: string }) =>
-  //     api.updateReview(data.id, data),
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ['reviews'] })
-  //     setEditingId(null)
-  //   },
-  // })
-
+  // Submit review mutation
   const submitMutation = useMutation({
     mutationFn: (id: string) => api.submitReview(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['bounties'] })
     },
   })
-
-  // Comments query
-  const { data: comments } = useQuery({
-    queryKey: ['comments', showCommentsFor],
-    queryFn: () => api.getComments(showCommentsFor!),
-    enabled: !!showCommentsFor,
-  })
-
-  // Add comment mutation
-  const addCommentMutation = useMutation({
-    mutationFn: ({ reviewId, content }: { reviewId: string; content: string }) =>
-      api.addComment(reviewId, content),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', showCommentsFor] })
-      setNewComment('')
-    },
-  })
-
-  // Delete comment mutation
-  const deleteCommentMutation = useMutation({
-    mutationFn: (commentId: string) => api.deleteComment(commentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', showCommentsFor] })
-    },
-  })
-
-  const handleAddComment = (reviewId: string) => {
-    if (newComment.trim()) {
-      addCommentMutation.mutate({ reviewId, content: newComment })
-    }
-  }
-
-  const claimedBounties = bounties?.bounties || []
 
   const startNewReview = (bountyId: string) => {
     setEditingId(bountyId)
@@ -125,261 +72,116 @@ export default function MyReviews() {
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length
 
+  if (bountiesLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen -mx-4 -my-8 px-4 py-8 bg-gradient-to-b from-slate-50 to-blue-50/50">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-slate-800 mb-3">
-            My <span className="text-blue-600">Reviews</span>
-          </h1>
-          <p className="text-slate-600 text-lg">
-            Manage your reviews and track your progress
-          </p>
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">My Reviews</h1>
+        <p className="text-slate-500">Manage your reviews and track your progress</p>
+      </div>
+
+      {/* Claimed Bounties - Start Reviews */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="font-semibold text-slate-800">Bounties To Review</h2>
         </div>
 
-        {/* Create New Review Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-            <h2 className="text-white font-semibold text-lg flex items-center gap-2">
-              <Edit2 className="w-5 h-5" />
-              Write a Review
-            </h2>
-          </div>
+        <div className="divide-y divide-slate-100">
+          {claimedBounties.length === 0 ? (
+            <div className="p-12 text-center">
+              <BookOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-500">No bounties claimed yet. Claim a bounty to start reviewing!</p>
+            </div>
+          ) : (
+            claimedBounties.map((bounty) => (
+              <div key={bounty.id} className="p-6">
+                {editingId === bounty.id ? (
+                  // Review form
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-800">Writing Review for Bounty {bounty.id.slice(0, 8)}...</h3>
 
-          <div className="p-6">
-            {editingId ? (
-              <div className="space-y-6">
-                {/* Rating */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
-                  <StarRating rating={rating} onChange={setRating} />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
+                      <StarRating rating={rating} onChange={setRating} />
+                    </div>
 
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Give your review a title..."
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Title (optional)</label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Give your review a title"
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
 
-                {/* Content */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Review Content
-                    <span className={`ml-2 text-sm ${wordCount >= 10 ? 'text-green-600' : 'text-slate-400'}`}>
-                      ({wordCount} words {wordCount < 10 && '- minimum 10 required'})
-                    </span>
-                  </label>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={8}
-                    placeholder="Share your honest thoughts about the work..."
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 resize-none"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Review Content
+                        <span className="text-slate-400 font-normal ml-2">({wordCount} words, min 10)</span>
+                      </label>
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="Write your review here..."
+                        rows={6}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    onClick={() => setEditingId(null)}
-                    className="text-slate-500 hover:text-slate-700 font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={saveDraft}
-                      disabled={createMutation.isPending}
-                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
-                    >
-                      Save Draft
-                    </button>
-                    <button
-                      onClick={saveDraft}
-                      disabled={wordCount < 10 || rating === 0 || createMutation.isPending}
-                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      <Send className="w-4 h-4" />
-                      {createMutation.isPending ? 'Submitting...' : 'Submit Review'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-3">
-                  Select a claimed bounty to review:
-                </label>
-                {claimedBounties.length === 0 ? (
-                  <div className="text-center py-8 bg-slate-50 rounded-xl">
-                    <BookOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                    <p className="text-slate-500">No claimed bounties yet.</p>
-                    <a href="/bounties" className="text-blue-600 hover:underline font-medium">
-                      Browse bounties to claim
-                    </a>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={saveDraft}
+                        disabled={createMutation.isPending}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {createMutation.isPending ? 'Saving...' : 'Save Draft'}
+                      </button>
+                      <button
+                        onClick={() => submitMutation.mutate(bounty.id)}
+                        disabled={submitMutation.isPending || wordCount < 10}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {submitMutation.isPending ? 'Submitting...' : 'Submit Review'}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-4 py-2 text-slate-500 hover:text-slate-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="grid gap-3">
-                    {claimedBounties.map((bounty) => (
-                      <button
-                        key={bounty.id}
-                        onClick={() => startNewReview(bounty.id)}
-                        className="flex items-center justify-between p-4 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all text-left group"
-                      >
-                        <div>
-                          <p className="font-medium text-slate-800">Bounty #{bounty.id.slice(0, 8)}</p>
-                          <p className="text-sm text-slate-500">{bounty.bounty_points} points</p>
-                        </div>
-                        <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                      </button>
-                    ))}
+                  // Bounty info
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-800">Bounty #{bounty.id.slice(0, 8)}</p>
+                      <p className="text-sm text-slate-500">{bounty.bounty_points} points</p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Claimed {bounty.claimed_at ? new Date(bounty.claimed_at).toLocaleDateString() : 'recently'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => startNewReview(bounty.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Write Review
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Existing Reviews */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800">Your Reviews</h2>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {mockReviews.map((review) => {
-              const status = statusStyles[review.status]
-              return (
-                <div key={review.id} className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.text}`}>
-                        {status.label}
-                      </span>
-                      <StarRating rating={review.rating} readonly />
-                    </div>
-                    <span className="text-sm text-slate-400 flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  {review.title && (
-                    <h3 className="font-semibold text-slate-800 text-lg mb-2">{review.title}</h3>
-                  )}
-
-                  {review.content ? (
-                    <p className="text-slate-600 mb-3">{review.content}</p>
-                  ) : (
-                    <p className="text-slate-400 italic mb-3">No content yet...</p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-sm text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-4 h-4" />
-                      {review.word_count} words
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="w-4 h-4" />
-                      0 helpful
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      0 views
-                    </span>
-                  </div>
-
-                  {review.status === 'draft' && (
-                    <button
-                      onClick={() => submitMutation.mutate(review.id)}
-                      disabled={submitMutation.isPending}
-                      className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      {submitMutation.isPending ? 'Submitting...' : 'Submit for Review'}
-                    </button>
-                  )}
-
-                  {/* Comments Section */}
-                  {review.status !== 'draft' && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <button
-                        onClick={() => setShowCommentsFor(showCommentsFor === review.id ? null : review.id)}
-                        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        {showCommentsFor === review.id ? 'Hide comments' : 'View comments'}
-                      </button>
-
-                      {showCommentsFor === review.id && (
-                        <div className="mt-4 space-y-4">
-                          {/* Add comment form */}
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              placeholder="Add a comment..."
-                              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                              onKeyDown={(e) => e.key === 'Enter' && handleAddComment(review.id)}
-                            />
-                            <button
-                              onClick={() => handleAddComment(review.id)}
-                              disabled={!newComment.trim() || addCommentMutation.isPending}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                            >
-                              <Send className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          {/* Comments list */}
-                          {comments && comments.length > 0 ? (
-                            <div className="space-y-3">
-                              {comments.map((comment) => (
-                                <div key={comment.id} className="bg-slate-50 rounded-lg p-3">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-medium text-sm text-slate-700">
-                                      {comment.user?.display_name || comment.user?.username || 'Someone'}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-slate-400">
-                                        {new Date(comment.created_at).toLocaleDateString()}
-                                      </span>
-                                      <button
-                                        onClick={() => deleteCommentMutation.mutate(comment.id)}
-                                        className="text-slate-400 hover:text-red-500"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <p className="text-sm text-slate-600">{comment.content}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-slate-400 text-center py-2">No comments yet</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-
-            {mockReviews.length === 0 && (
-              <div className="p-12 text-center">
-                <MessageSquare className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                <p className="text-slate-500">No reviews yet. Claim a bounty to get started!</p>
-              </div>
-            )}
-          </div>
+            ))
+          )}
         </div>
       </div>
     </div>
