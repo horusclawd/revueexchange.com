@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Outlet, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Menu, X, Star, LogOut, BarChart2, MessageCircle, Trophy, BookOpen, User, Home } from 'lucide-react'
+import { Menu, X, Star, LogOut, BarChart2, MessageCircle, Trophy, BookOpen, User, Home, Package } from 'lucide-react'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
+  { to: '/products', label: 'Products', icon: Package },
   { to: '/bounties', label: 'Bounties', icon: BookOpen },
   { to: '/reviews', label: 'Reviews', icon: Star },
   { to: '/feed', label: 'Feed', icon: MessageCircle },
