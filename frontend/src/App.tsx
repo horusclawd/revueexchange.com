@@ -14,6 +14,7 @@ import Feed from './pages/Feed'
 import Leaderboard from './pages/Leaderboard'
 import Analytics from './pages/Analytics'
 import BountyDetail from './pages/BountyDetail'
+import Products from './pages/Products'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -113,6 +114,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Analytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="products"
+          element={
+            <ProtectedRoute>
+              <Products />
             </ProtectedRoute>
           }
         />
