@@ -16,8 +16,8 @@ Features and bug fixes to implement. Will be organized into future sprints.
 - [x] No bounty detail page - FIXED (added BountyDetail page)
 
 ### Reviews
-- [ ] My Reviews page not connected to claimed bounties
-- [ ] No review detail page
+- [x] My Reviews page not connected to claimed bounties - FIXED (connected to API)
+- [ ] No review detail page (lower priority - reviews shown inline)
 
 ---
 
