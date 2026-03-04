@@ -47,6 +47,17 @@ export const api = {
     return data.data
   },
 
+  // Products
+  async getProducts(userId: string) {
+    const { data } = await client.get<{ data: any[] }>(`/v1/users/${userId}/products`)
+    return data.data
+  },
+
+  async createProduct(product: { title: string; description: string; type: string; genre: string }) {
+    const { data } = await client.post<{ data: any }>('/v1/products', product)
+    return data.data
+  },
+
   // Bounties
   async getBounties(params?: { status?: string; genre?: string; type?: string }) {
     const { data } = await client.get<{ data: Bounty[]; meta: { total: number } }>('/v1/bounties', { params })
