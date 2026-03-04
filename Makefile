@@ -1,6 +1,6 @@
 # RevUExchange Makefile
 
-.PHONY: help local-start local-stop local-api local-ui test build
+.PHONY: help local-start local-stop local-api local-ui test test-backend test-frontend build build-docker lint
 
 # Help
 help:
@@ -14,9 +14,15 @@ help:
 	@echo "  make local-api          Start Go API locally"
 	@echo "  make local-ui           Start React UI locally"
 	@echo ""
-	@echo "Testing & Build:"
-	@echo "  make test              Run tests"
+	@echo "Testing & Linting:"
+	@echo "  make test              Run all tests"
+	@echo "  make test-backend      Run backend tests"
+	@echo "  make test-frontend     Run frontend tests"
+	@echo "  make lint              Run linters"
+	@echo ""
+	@echo "Building:"
 	@echo "  make build             Build for production"
+	@echo "  make build-docker      Build Docker images"
 	@echo ""
 
 # Local Development
@@ -30,16 +36,29 @@ local-stop:
 
 # Development Servers
 local-api:
-	cd api && go run cmd/api/main.go
+	cd api && go run ./cmd/server/main.go
 
 local-ui:
 	cd frontend && npm run dev
 
-# Testing & Build
-test:
-	cd api && go test ./...
-	cd frontend && npm run test
+# Testing & Linting
+test: test-backend test-frontend
 
+test-backend:
+	cd api && go test -v -race ./...
+
+test-frontend:
+	cd frontend && npm test -- --run
+
+lint:
+	cd api && go install golang.org/x/lint/golint@latest && golint -set_exit_status ./...
+	cd frontend && npm run lint
+
+# Building
 build:
-	cd api && go build -o bin/api ./cmd/api
+	cd api && go build -o bin/server ./cmd/server
 	cd frontend && npm run build
+
+build-docker:
+	docker build -t revueexchange-backend:latest ./api
+	docker build -t revueexchange-frontend:latest ./frontend

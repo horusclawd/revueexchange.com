@@ -1,0 +1,98 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: ./api
+        run: |
+          docker build -t $ECR_REGISTRY/revueexchange-backend:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/revueexchange-backend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/revueexchange-backend:$IMAGE_TAG $ECR_REGISTRY/revueexchange-backend:latest
+          docker push $ECR_REGISTRY/revueexchange-backend:latest
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: ./frontend
+        run: |
+          docker build -t $ECR_REGISTRY/revueexchange-frontend:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/revueexchange-frontend:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/revueexchange-frontend:$IMAGE_TAG $ECR_REGISTRY/revueexchange-frontend:latest
+          docker push $ECR_REGISTRY/revueexchange-frontend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy infrastructure
+        run: |
+          cd terraform
+          terraform init -backend-config="bucket=revueexchange-terraform-state"
+          terraform apply -auto-approve -var="environment=prod"
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster revueexchange-prod \
+            --service revueexchange-backend \
+            --force-new-deployment
+
+          aws ecs update-service \
+            --cluster revueexchange-prod \
+            --service revueexchange-frontend \
+            --force-new-deployment
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster revueexchange-prod \
+            --services revueexchange-backend revueexchange-frontend
