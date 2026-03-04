@@ -747,6 +747,47 @@ func (r *Repository) GetReviewVerification(ctx context.Context, reviewID string)
 	return &v, nil
 }
 
+// Genre matching methods
+
+func (r *Repository) GetUserGenres(ctx context.Context, userID string) ([]string, error) {
+	// Placeholder - would query user preferences table
+	return []string{}, nil
+}
+
+func (r *Repository) GetPopularBounties(ctx context.Context, limit int) ([]model.Bounty, error) {
+	query := `SELECT id, user_id, product_id, bounty_points, bounty_cash, status, requirements, claimed_by, claimed_at, completed_at, created_at, updated_at FROM bounties WHERE status = 'open' ORDER BY created_at DESC LIMIT $1`
+	rows, err := r.db.Query(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bounties []model.Bounty
+	for rows.Next() {
+		var b model.Bounty
+		if err := rows.Scan(&b.ID, &b.UserID, &b.ProductID, &b.BountyPoints, &b.BountyCash, &b.Status, &b.Requirements, &b.ClaimedBy, &b.ClaimedAt, &b.CompletedAt, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return nil, err
+		}
+		bounties = append(bounties, b)
+	}
+	return bounties, nil
+}
+
+func (r *Repository) GetBountiesByGenres(ctx context.Context, genres []string, limit int) ([]model.Bounty, error) {
+	// Placeholder - would query with genre filter
+	return r.GetPopularBounties(ctx, limit)
+}
+
+func (r *Repository) GetReviewersByGenre(ctx context.Context, genre string, limit int) ([]string, error) {
+	// Placeholder - would return reviewer IDs
+	return []string{}, nil
+}
+
+func (r *Repository) UpdateUserGenres(ctx context.Context, userID string, genres, expertise, interests []string) error {
+	// Placeholder - would update user preferences
+	return nil
+}
+
 func (r *Repository) Close() {
 	r.db.Close()
 }
