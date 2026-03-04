@@ -4,16 +4,16 @@ Features and bug fixes to implement. Will be organized into future sprints.
 
 ---
 
-## Critical (Must Fix)
+## Critical (Must Fix) - IN PROGRESS
 
 ### Authentication
-- [ ] User gets logged out on page refresh - investigate token persistence
-- [ ] MSW should NOT be enabled by default (disable in main.tsx) - DONE
+- [x] User gets logged out on page refresh - FIXED (MSW disabled by default)
+- [x] MSW should NOT be enabled by default - FIXED
 
 ### Bounty Marketplace
-- [ ] Create Bounty button does nothing - needs form/modal
-- [ ] Claim Bounty button not connected to API
-- [ ] No bounty detail page
+- [x] Create Bounty button does nothing - FIXED (modal + API connection)
+- [x] Claim Bounty button not connected - ALREADY CONNECTED
+- [x] No bounty detail page - FIXED (added BountyDetail page)
 
 ### Reviews
 - [ ] My Reviews page not connected to claimed bounties
@@ -84,14 +84,19 @@ Features and bug fixes to implement. Will be organized into future sprints.
 
 | Date | Issue | Status |
 |------|-------|--------|
-| 2026-03-03 | User logged out on refresh | Investigating - likely MSW issue |
-| 2026-03-03 | Create Bounty button does nothing | To Do |
+| 2026-03-03 | User logged out on refresh | Fixed - MSW disabled |
+| 2026-03-03 | Create Bounty button does nothing | Fixed - added modal |
+| 2026-03-03 | No bounty detail page | Fixed - added page |
 | 2026-03-03 | Make local-api broken (wrong path) | Fixed |
 
 ---
 
-## Notes
+## Sprint 33 Progress
 
-- Sprint plan updated 2026-03-03 to accurately reflect completion status
-- Many features marked "done" are actually stubs or incomplete
-- Focus should be on making core flows work first (register -> create bounty -> claim -> review)
+Completed in this sprint:
+1. Disable MSW by default (fixes logout issue)
+2. Fix Makefile paths (cmd/server -> cmd/api)
+3. Add Create Bounty modal with API connection
+4. Add BountyDetail page with route and claim functionality
+
+---
