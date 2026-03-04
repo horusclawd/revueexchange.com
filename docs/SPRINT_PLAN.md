@@ -444,6 +444,52 @@
 
 ---
 
+### Sprint 33: Bug Fixes & Critical Features ✅
+**Duration**: ~6 hours
+
+**Goal**: Fix critical issues preventing core functionality
+
+**Deliverables**:
+- ✅ Disable MSW by default (fixes logout issue)
+- ✅ Fix Makefile paths (cmd/server -> cmd/api)
+- ✅ Add Create Bounty modal with API connection
+- ✅ Add BountyDetail page with route
+- ✅ Connect MyReviews page to API
+
+---
+
+### Sprint 34: Navigation & UI Improvements 🔄 In Progress
+
+**Goal**: Add hamburger menu navigation and remaining UI fixes
+
+**Deliverables**:
+- [ ] Add hamburger menu to navbar with:
+  - [ ] Bounties
+  - [ ] Dashboard
+  - [ ] Reviews
+  - [ ] Feed
+  - [ ] Leaderboard
+  - [ ] Analytics
+  - [ ] Profile
+  - [ ] Logout
+
+**From Backlog (High Priority)**:
+- [ ] Follow/Unfollow buttons - connect to API
+- [ ] Comments UI on reviews - implement
+- [ ] Products page UI - implement
+- [ ] Badges display - connect to API
+- [ ] Streak indicator - connect to API
+
+**From Backlog (Medium Priority)**:
+- [ ] Points purchase - connect to real Stripe
+- [ ] Analytics - connect to real backend data
+- [ ] Avatar upload - implement
+
+**Remaining from Critical**:
+- [ ] Review detail page (lower priority)
+
+---
+
 ## Summary
 
 | Sprint | Name | Status |
@@ -480,7 +526,8 @@
 | 30 | CI/CD Pipeline | ⚠️ Partial |
 | 31 | Production Deployment | ⚠️ Partial |
 | 32 | Launch & Handoff | ⚠️ Partial |
-| 33 | Bug Fixes & Critical Features | 🔄 In Progress |
+| 33 | Bug Fixes & Critical Features | ✅ Complete |
+| 34 | Navigation & UI Improvements | 🔄 In Progress |
 
 **Actually Complete**: ~12 sprints
 **Stub/Not Implemented**: ~20 sprints
