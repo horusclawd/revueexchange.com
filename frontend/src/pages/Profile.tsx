@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
-import { Award, X, Trophy } from 'lucide-react'
+import { Award, X, Trophy, Flame } from 'lucide-react'
 
 function getBadgeColor(tier: string) {
   switch (tier) {
@@ -52,6 +52,12 @@ export default function Profile() {
   const { data: badges } = useQuery({
     queryKey: ['badges'],
     queryFn: api.getBadges,
+  })
+
+  // Fetch streak
+  const { data: streak } = useQuery({
+    queryKey: ['streak'],
+    queryFn: api.getStreak,
   })
 
   // Follow/unfollow mutation
@@ -146,6 +152,15 @@ export default function Profile() {
                 <p className="text-2xl font-bold text-gray-900">{profileUser.reputation_score}</p>
                 <p className="text-sm text-gray-500">Reputation</p>
               </div>
+              {streak && (
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600 flex items-center justify-center gap-1">
+                    <Flame className="w-5 h-5" />
+                    {streak.current_streak}
+                  </p>
+                  <p className="text-sm text-gray-500">Day Streak</p>
+                </div>
+              )}
             </div>
 
             {/* Bio */}
@@ -269,6 +284,15 @@ export default function Profile() {
                 <label className="block text-sm font-medium text-gray-500">Reputation Score</label>
                 <p>{currentUser.reputation_score || 0}</p>
               </div>
+              {streak && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Current Streak</label>
+                  <p className="text-orange-600 font-bold flex items-center gap-1">
+                    <Flame className="w-4 h-4" />
+                    {streak.current_streak} days
+                  </p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setIsEditing(true)}
