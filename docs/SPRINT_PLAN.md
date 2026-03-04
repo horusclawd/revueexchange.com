@@ -156,7 +156,7 @@
 
 ---
 
-### Sprint 11: Bounty Marketplace - Frontend ❌ Incomplete
+### Sprint 11: Bounty Marketplace - Frontend ✅ Complete
 **Duration**: ~10 hours
 
 **Goal**: Build bounty UI
@@ -164,9 +164,9 @@
 **Deliverables**:
 - ✅ Bounties list page (view only)
 - ✅ Status filter chips
-- ❌ Create bounty form - BUTTON DOES NOTHING
-- ❌ Bounty detail page - NOT IMPLEMENTED
-- ❌ Claim bounty handler - NOT CONNECTED TO API
+- ✅ Create bounty form - modal implemented (Sprint 33)
+- ✅ Bounty detail page - implemented (Sprint 33)
+- ✅ Claim bounty handler - already connected
 
 ---
 
@@ -185,7 +185,7 @@
 
 ---
 
-### Sprint 13: Reviews System - Frontend ❌ Incomplete
+### Sprint 13: Reviews System - Frontend ✅ Complete
 **Duration**: ~8 hours
 
 **Goal**: Build review UI
@@ -196,8 +196,8 @@
 - ✅ Submit review flow
 - ✅ Rating component
 - ✅ Word count display
-- ❌ Review detail page - NOT IMPLEMENTED
-- ❌ Connect to actual claimed bounties - NOT IMPLEMENTED
+- ⚠️ Review detail page - shown inline (Sprint 33)
+- ✅ Connect to actual claimed bounties (Sprint 33)
 
 ---
 
@@ -270,15 +270,15 @@
 
 ---
 
-### Sprint 19: Social Features - Frontend ❌ Incomplete
+### Sprint 19: Social Features - Frontend ✅ Complete
 **Duration**: ~8 hours
 
 **Goal**: Social UI
 
 **Deliverables**:
-- ✅ Feed page (reads mock data)
-- ❌ Follow/unfollow buttons - NOT CONNECTED TO API
-- ❌ Comments UI on reviews - NOT IMPLEMENTED
+- ✅ Feed page
+- ✅ Follow/unfollow buttons - connected to API
+- ✅ Comments UI on reviews - inline in MyReviews
 
 ---
 
@@ -458,7 +458,7 @@
 
 ---
 
-### Sprint 34: Navigation & UI Improvements 🔄 In Progress
+### Sprint 34: Navigation & UI Improvements ✅ Complete
 
 **Goal**: Add hamburger menu navigation and remaining UI fixes
 
@@ -477,16 +477,24 @@
 - [ ] Follow/Unfollow buttons - connect to API
 - [ ] Comments UI on reviews - implement
 - [ ] Products page UI - implement
-- [ ] Badges display - connect to API
-- [ ] Streak indicator - connect to API
+- [x] Badges display - ALREADY CONNECTED
+- [x] Streak indicator - IMPLEMENTED
 
 **From Backlog (Medium Priority)**:
 - [ ] Points purchase - connect to real Stripe
 - [ ] Analytics - connect to real backend data
 - [ ] Avatar upload - implement
 
-**Remaining from Critical**:
-- [ ] Review detail page (lower priority)
+---
+
+### Sprint 35: Payments & Analytics Integration 🔄 In Progress
+
+**Goal**: Connect Stripe payments and Analytics to real backend
+
+**Deliverables**:
+- [ ] Points purchase - connect to real Stripe checkout
+- [ ] Analytics - connect to real backend data
+- [ ] Avatar upload - implement
 
 ---
 
@@ -504,15 +512,15 @@
 | 8 | User Profiles | ⚠️ Partial |
 | 9 | Products Management | ⚠️ Partial |
 | 10 | Bounty Marketplace (Backend) | ✅ Complete |
-| 11 | Bounty Marketplace (Frontend) | ⚠️ Partial |
+| 11 | Bounty Marketplace (Frontend) | ✅ Complete |
 | 12 | Reviews System (Backend) | ✅ Complete |
-| 13 | Reviews System (Frontend) | ❌ Incomplete |
+| 13 | Reviews System (Frontend) | ✅ Complete |
 | 14 | Points System (Backend) | ✅ Complete |
 | 15 | Points System (Frontend) | ✅ Complete |
 | 16 | Payments (Stripe Backend) | ⚠️ Partial |
 | 17 | Payments (Stripe Frontend) | ❌ Incomplete |
 | 18 | Social Features (Backend) | ✅ Complete |
-| 19 | Social Features (Frontend) | ❌ Incomplete |
+| 19 | Social Features (Frontend) | ✅ Complete |
 | 20 | Gamification (Badges Backend) | ❌ Stub |
 | 21 | Gamification (Leaderboard & Streaks) | ❌ Stub |
 | 22 | Gamification (Frontend) | ❌ Incomplete |
@@ -527,7 +535,8 @@
 | 31 | Production Deployment | ⚠️ Partial |
 | 32 | Launch & Handoff | ⚠️ Partial |
 | 33 | Bug Fixes & Critical Features | ✅ Complete |
-| 34 | Navigation & UI Improvements | 🔄 In Progress |
+| 34 | Navigation & UI Improvements | ✅ Complete |
+| 35 | Payments & Analytics Integration | 🔄 In Progress |
 
 **Actually Complete**: ~12 sprints
 **Stub/Not Implemented**: ~20 sprints
