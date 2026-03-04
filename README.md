@@ -1,119 +1,106 @@
-# RevUExchange - Business & Application Summary
+# RevUExchange
 
-## Based on: Book-Bounty.com Analysis
+A reciprocal review platform for self-published authors and digital creators. Users earn points by reviewing others' work and spend points to get their own work reviewed.
 
----
+## Tech Stack
 
-## What is Book Bounty?
+- **Backend**: Go with chi/v5 router
+- **Frontend**: React 18 with TypeScript, Vite, Tailwind CSS
+- **Database**: PostgreSQL (AWS RDS)
+- **Cache**: Redis (AWS ElastiCache)
+- **Storage**: AWS S3
+- **CDN**: AWS CloudFront
+- **Infrastructure**: Terraform
+- **CI/CD**: GitHub Actions
+- **Authentication**: JWT
 
-**Book Bounty** is a reciprocal review platform for self-published authors. It solves the chicken-and-egg problem of book reviews: new authors need reviews to sell books, but need sales to get readers who leave reviews.
+## Features
 
-### The Model:
-1. **Authors earn points** by reviewing other authors' books
-2. **Authors spend points** to create "bounties" for reviewers to review their own books
-3. **Reviews are "honest"** - authors can't pay for fake reviews, they incentivize engagement
-4. **Anti-swap protection** - can't review people who've reviewed you (prevents collusion)
-5. **Amazon compliant** - distinguishes between verified and unverified Amazon purchases
+- User authentication (register/login)
+- Product management (books, courses, etc.)
+- Bounty marketplace for review requests
+- Review system with ratings
+- Points economy (earn/spend/transfer)
+- Stripe payments for point purchases
+- Social features (follow, comments, activity feed)
+- Gamification (badges, leaderboards, streaks)
+- Analytics dashboard
+- Anti-fraud detection
+- Email notifications (SendGrid)
 
-### Key Features:
-- Bounty Library (browse books needing reviews)
-- Point economy (earn by giving, spend by receiving)
-- Review tracking
-- Genre-based matching
-- Launch timing strategies (bounties during free promo days)
+## Getting Started
 
----
+### Prerequisites
 
-## The Problem It Solves
+- Go 1.21+
+- Node.js 20+
+- Docker (for local development)
+- LocalStack (for local AWS services)
 
-**For New Authors:**
-- Hard to get first reviews
-- Can't afford professional reviews
-- Amazon algorithm favors books with reviews
-- Isolation in self-publishing
+### Local Development
 
-**Pain Points Identified:**
-- "How do I get reviews without buying them?"
-- "How do I build an audience from zero?"
-- "How do I compete with traditionally published books?"
+```bash
+# Install dependencies
+cd api && go mod download
+cd frontend && npm install
 
----
+# Start infrastructure
+make local-start
 
-## Business Model
+# Start API
+make local-api
 
-**Revenue Streams (Inferred):**
-- Subscription/membership fees
-- Premium features (more bounties, analytics)
-- Featured placement in library
-- Advertising to authors
+# Start frontend (in another terminal)
+make local-ui
+```
 
----
+### Running Tests
 
-## Key Differences / Improvement Opportunities (For Our App)
+```bash
+# All tests
+make test
 
-Based on the Book Bounty model, here are potential enhancements:
+# Backend only
+make test-backend
 
-### 1. **Broader Platform Focus**
-- Expand beyond books to: courses, podcasts, newsletters, products
-- "Review exchange" for any digital product
+# Frontend only
+make test-frontend
+```
 
-### 2. **Social Features**
-- Author profiles with reading history
-- Follow authors/readers
-- Feed of review activity
-- Comments on reviews
+## Project Structure
 
-### 3. **Quality Over Quantity**
-- Rating system for reviewers
-- Verified reader badges
-- Genre expertise matching
+```
+revueexchange.com/
+├── api/                    # Go backend
+│   ├── cmd/server/        # Entry point
+│   └── internal/
+│       ├── config/        # Configuration
+│       ├── handler/       # HTTP handlers
+│       ├── middleware/    # Auth middleware
+│       ├── model/        # Data models
+│       ├── repository/   # Database operations
+│       └── service/      # Business logic
+├── frontend/              # React frontend
+│   ├── src/
+│   │   ├── components/   # Reusable components
+│   │   ├── pages/        # Page components
+│   │   ├── services/     # API client
+│   │   └── hooks/        # Custom hooks
+│   └── public/
+├── terraform/            # Infrastructure
+│   ├── env/prod/       # Production config
+│   └── modules/         # Reusable modules
+└── docs/               # Documentation
+```
 
-### 4. **Gamification**
-- Leaderboards
-- Badges for top reviewers
-- Streaks for consistent reviewing
+## API Documentation
 
-### 5. **Direct Integration**
-- API connections to: Amazon, Kobo, Apple Books, Gumroad, etc.
-- Automatic review posting
-- Cross-platform review tracking
+See [API Endpoints](docs/API.md) for detailed endpoint documentation.
 
-### 6. **Community Building**
-- Forums by genre
-- Critique groups
-- Writing sprints
-- Beta reader matching
+## Deployment
 
-### 7. **Analytics**
-- Review analytics for authors
-- Sales correlation tracking
-- Genre performance insights
+See [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) for deployment instructions.
 
----
+## License
 
-## Target Users
-
-**Primary:**
-- Self-published authors (indie authors)
-- Small press publishers
-- Kindle Direct Publishing users
-
-**Secondary:**
-- Book reviewers/readers who want free books
-- Book bloggers
-- Audiobook narrators
-
-
----
-
-## Competition
-
-- Book Bounty (direct competitor)
-- Goodreads (community, not exchange)
-- Kirkus (professional, expensive)
-- OnlineBookClub (free but selective)
-- Reedsy ( marketplace for professional reviews)
-
----
-
-*Last Updated: March 2026*
+MIT
