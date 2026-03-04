@@ -98,6 +98,35 @@ export interface Activity {
   user?: User
 }
 
+export interface Badge {
+  id: string
+  user_id: string
+  badge_type: string
+  badge_name: string
+  description: string
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum'
+  icon_url?: string
+  awarded_at: string
+}
+
+export interface LeaderboardEntry {
+  user_id: string
+  username: string
+  display_name: string
+  points: number
+  review_count: number
+  rank: number
+  last_updated: string
+}
+
+export interface Streak {
+  user_id: string
+  current_streak: number
+  longest_streak: number
+  last_activity_at: string
+  streak_started_at: string
+}
+
 export interface ApiResponse<T> {
   data?: T
   error?: string

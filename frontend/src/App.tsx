@@ -11,6 +11,7 @@ import Profile from './pages/Profile'
 import Points from './pages/Points'
 import PurchasePoints from './pages/PurchasePoints'
 import Feed from './pages/Feed'
+import Leaderboard from './pages/Leaderboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -86,6 +87,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Feed />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="leaderboard"
+          element={
+            <ProtectedRoute>
+              <Leaderboard />
             </ProtectedRoute>
           }
         />

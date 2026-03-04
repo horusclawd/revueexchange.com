@@ -26,6 +26,9 @@ export default function Layout() {
                 <Link to="/feed" className="text-gray-600 hover:text-gray-900">
                   Feed
                 </Link>
+                <Link to="/leaderboard" className="text-gray-600 hover:text-gray-900">
+                  Leaderboard
+                </Link>
                 <Link to="/profile" className="text-gray-600 hover:text-gray-900">
                   Profile
                 </Link>

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, Bounty, PointTransaction, Payment, Comment, Activity } from '../types'
+import type { User, Bounty, PointTransaction, Payment, Comment, Activity, Badge, LeaderboardEntry, Streak } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -160,6 +160,34 @@ export const api = {
 
   async getComments(reviewId: string) {
     const { data } = await client.get<{ data: Comment[] }>(`/v1/comments?review_id=${reviewId}`)
+    return data.data
+  },
+
+  // Gamification - Badges
+  async getBadges() {
+    const { data } = await client.get<{ data: Badge[] }>('/v1/badges')
+    return data.data
+  },
+
+  async checkBadges() {
+    const { data } = await client.post<{ data: Badge[]; message: string }>('/v1/badges/check')
+    return data
+  },
+
+  // Gamification - Leaderboard
+  async getLeaderboard(limit = 50) {
+    const { data } = await client.get<{ data: LeaderboardEntry[] }>('/v1/gamification/leaderboard', { params: { limit } })
+    return data.data
+  },
+
+  // Gamification - Streaks
+  async getStreak() {
+    const { data } = await client.get<{ data: Streak }>('/v1/gamification/streak')
+    return data.data
+  },
+
+  async updateStreak() {
+    const { data } = await client.post<{ data: Streak; message: string }>('/v1/gamification/streak/update')
     return data.data
   },
 }

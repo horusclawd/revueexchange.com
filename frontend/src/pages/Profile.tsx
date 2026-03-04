@@ -3,6 +3,22 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../services/api'
+import { Award, X, Trophy } from 'lucide-react'
+
+function getBadgeColor(tier: string) {
+  switch (tier) {
+    case 'bronze':
+      return 'bg-amber-100 text-amber-700 border-amber-200'
+    case 'silver':
+      return 'bg-gray-100 text-gray-700 border-gray-200'
+    case 'gold':
+      return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+    case 'platinum':
+      return 'bg-purple-100 text-purple-700 border-purple-200'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200'
+  }
+}
 
 export default function Profile() {
   const [searchParams] = useSearchParams()
@@ -12,6 +28,7 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
   const [displayName, setDisplayName] = useState(currentUser?.display_name || '')
   const [bio, setBio] = useState(currentUser?.bio || '')
+  const [selectedBadge, setSelectedBadge] = useState<any>(null)
 
   // Determine which user to show
   const isOwnProfile = !profileId || profileId === currentUser?.id
@@ -29,6 +46,12 @@ export default function Profile() {
     queryKey: ['isFollowing', userId],
     queryFn: () => api.isFollowing(userId),
     enabled: !!userId && !isOwnProfile,
+  })
+
+  // Fetch badges
+  const { data: badges } = useQuery({
+    queryKey: ['badges'],
+    queryFn: api.getBadges,
   })
 
   // Follow/unfollow mutation
@@ -137,6 +160,47 @@ export default function Profile() {
             </p>
           </div>
         </div>
+
+        {/* Badges Section */}
+        {badges && badges.length > 0 && (
+          <div className="mt-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Badges</h3>
+            <div className="flex flex-wrap gap-2">
+              {badges.map((badge) => (
+                <button
+                  key={badge.id}
+                  onClick={() => setSelectedBadge(badge)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border ${getBadgeColor(badge.tier)}`}
+                >
+                  {badge.badge_name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Badge Modal */}
+        {selectedBadge && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedBadge(null)}>
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start justify-between mb-4">
+                <div className={`px-4 py-2 rounded-full text-lg font-bold ${getBadgeColor(selectedBadge.tier)}`}>
+                  {selectedBadge.badge_name}
+                </div>
+                <button onClick={() => setSelectedBadge(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">{selectedBadge.description}</p>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Award className="w-4 h-4" />
+                <span className="capitalize">{selectedBadge.tier} tier</span>
+                <span>•</span>
+                <span>Earned {new Date(selectedBadge.awarded_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -149,6 +213,27 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Profile</h1>
+
+      {/* Badges for own profile */}
+      {badges && badges.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <h2 className="font-semibold text-gray-900">Your Badges</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {badges.map((badge) => (
+              <button
+                key={badge.id}
+                onClick={() => setSelectedBadge(badge)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border ${getBadgeColor(badge.tier)}`}
+              >
+                {badge.badge_name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-4 mb-6">
@@ -235,6 +320,29 @@ export default function Profile() {
           </form>
         )}
       </div>
+
+      {/* Badge Modal for own profile */}
+      {selectedBadge && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedBadge(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div className={`px-4 py-2 rounded-full text-lg font-bold ${getBadgeColor(selectedBadge.tier)}`}>
+                {selectedBadge.badge_name}
+              </div>
+              <button onClick={() => setSelectedBadge(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">{selectedBadge.description}</p>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Award className="w-4 h-4" />
+              <span className="capitalize">{selectedBadge.tier} tier</span>
+              <span>•</span>
+              <span>Earned {new Date(selectedBadge.awarded_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
