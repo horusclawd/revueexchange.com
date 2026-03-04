@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../services/api'
-import { Search, Filter, Plus, Star, Clock, BookOpen, Headphones, FileText, Sparkles } from 'lucide-react'
+import { Search, Filter, Plus, Star, Clock, BookOpen, Headphones, FileText, Sparkles, X } from 'lucide-react'
 
 type ProductType = 'book' | 'course' | 'podcast' | 'newsletter'
 type BountyStatus = 'open' | 'claimed' | 'completed' | 'cancelled'
@@ -24,6 +24,7 @@ const statusStyles: Record<BountyStatus, { bg: string; text: string; label: stri
 export default function Bounties() {
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: result, isLoading } = useQuery({
@@ -35,6 +36,15 @@ export default function Bounties() {
     mutationFn: (bountyId: string) => api.claimBounty(bountyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] })
+    },
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (bounty: { product_id: string; bounty_points: number; requirements?: string }) =>
+      api.createBounty(bounty),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bounties'] })
+      setShowCreateModal(false)
     },
   })
 
@@ -75,7 +85,10 @@ export default function Bounties() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <button className="group flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="group flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25"
+              >
                 <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 Create Bounty
               </button>
@@ -204,6 +217,122 @@ export default function Bounties() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Create Bounty Modal */}
+      {showCreateModal && (
+        <CreateBountyModal
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={(data) => createMutation.mutate(data)}
+          isPending={createMutation.isPending}
+          error={createMutation.error?.message}
+        />
+      )}
+    </div>
+  )
+}
+
+// Create Bounty Modal Component
+function CreateBountyModal({ onClose, onSubmit, isPending, error }: {
+  onClose: () => void
+  onSubmit: (data: { product_id: string; bounty_points: number; requirements?: string }) => void
+  isPending: boolean
+  error?: string
+}) {
+  const [productId, setProductId] = useState('')
+  const [points, setPoints] = useState(50)
+  const [requirements, setRequirements] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSubmit({
+      product_id: productId,
+      bounty_points: points,
+      requirements: requirements || undefined,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-2xl font-bold text-slate-800 mb-6">Create Bounty</h2>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Product ID
+            </label>
+            <input
+              type="text"
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              placeholder="Enter product ID"
+              required
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              You need to create a product first to get its ID
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Points to Award
+            </label>
+            <input
+              type="number"
+              value={points}
+              onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
+              min={10}
+              max={500}
+              required
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Requirements (optional)
+            </label>
+            <textarea
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="What should the review include?"
+              rows={3}
+              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex-1 px-4 py-2 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50"
+            >
+              {isPending ? 'Creating...' : 'Create Bounty'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
